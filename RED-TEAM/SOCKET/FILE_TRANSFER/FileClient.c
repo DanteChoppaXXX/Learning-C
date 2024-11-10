@@ -7,14 +7,19 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 6302
 
-int sendFile(void *socket_desc){
+char path[255];
+
+int sendFile(int client_socket, char *filename, long fileSize){
+
+    send(client_socket, filename, strlen(filename), 0);
+    send(client_socket, fileSize, strlen(fileSize), 0);
     
-    int client_socket = *(int *)socket_desc;
-     
 
     return 0;
 }
@@ -24,7 +29,7 @@ int main()
 
     int client_socket;
     struct sockaddr_in server_addr;
-    char client_message[2000], server_message[2000];
+    struct stat file_stat;
 
     // Create the client socket.
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -49,6 +54,32 @@ int main()
     printf("Connection Successful!\n");
     printf("======================\n");
 
+    printf("Enter the file path of the file you want to send:\n");
+    printf("=================================================\n");
+    scanf("%s", &path);
+    
+    // Get the filename.
+    char *extractFilename = strrchr(path, '/');
+    char *filename = extractFilename++;
+
+    printf("%s\n", filename);
+    if (stat(path, &file_stat) < 0)
+    {
+        perror("Failed to get file description!\n");
+        return 1;
+    }
+
+    // Get the file size.
+    long fileSize;
+    fileSize = file_stat.st_size;
+
+    printf("%ld\n", fileSize);
+
+    sendFile(client_socket, filename, fileSize);
+
+    printf("Closing Program...\n");
+    
+    
     close(client_socket);
 
     return 0;

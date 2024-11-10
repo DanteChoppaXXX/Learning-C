@@ -19,12 +19,20 @@ typedef struct
 {
     int client_socket;
     char *filename;
+    long fileSize;
 } ClientArgs;
 
+int receiveFile(int client_socket, char *filename, long fileSize){
+
+
+
+    return 0;
+}
 int clientHandler(void *args){
     ClientArgs *client_args = (ClientArgs *)args;
     int client_socket = client_args->client_socket;
     char *filename = client_args->filename;
+    long fileSize = client_args->fileSize;
     FILE *file;
 
     file = fopen(filename, "wb");
@@ -35,6 +43,9 @@ int clientHandler(void *args){
         printf("Failed to read file!(Hint: Make sure the file exist)\n");
         return;
     }
+
+    recv(client_socket, filename, strlen(filename), 0);
+    recv(client_socket, fileSize, strlen(fileSize), 0);
 
     return 0;
 }
