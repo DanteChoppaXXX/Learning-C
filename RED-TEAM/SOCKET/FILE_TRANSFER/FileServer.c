@@ -12,8 +12,8 @@
 #define SERVER_PORT 6302
 #define MAX_CLIENTS 5
 
-int client_sockets[MAX_CLIENTS];    // Array to store client sockets.
-pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;  // Mutex for thread safety.
+int client_sockets[MAX_CLIENTS];                           // Array to store client sockets.
+pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for thread safety.
 
 typedef struct
 {
@@ -22,13 +22,12 @@ typedef struct
     long fileSize;
 } ClientArgs;
 
-int receiveFile(int client_socket, char *filename, long fileSize){
+// int receiveFile(int client_socket, char *filename, long fileSize){
 
-
-
-    return 0;
-}
-int clientHandler(void *args){
+//     return 0;
+// }
+void *clientHandler(void *args)
+{
     ClientArgs *client_args = (ClientArgs *)args;
     int client_socket = client_args->client_socket;
     char *filename = client_args->filename;
@@ -41,16 +40,14 @@ int clientHandler(void *args){
     if (file == NULL)
     {
         printf("Failed to read file!(Hint: Make sure the file exist)\n");
-        return;
     }
 
-    recv(client_socket, filename, strlen(filename), 0);
-    recv(client_socket, fileSize, strlen(fileSize), 0);
-
-    return 0;
+    // recv(client_socket, filename, strlen(filename), 0);
+    // recv(client_socket, fileSize, strlen(fileSize), 0);
 }
 
-int main(){
+int main()
+{
 
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;
@@ -92,7 +89,7 @@ int main(){
         printf("=====================\n");
 
         // Add the client socket to the client_sockets array.
-        pthread_mutex_lock(&clients_mutex);     // Lock the mutex to prevent race conditions.
+        pthread_mutex_lock(&clients_mutex); // Lock the mutex to prevent race conditions.
 
         for (int i = 0; i < MAX_CLIENTS; i++)
         {
@@ -104,7 +101,7 @@ int main(){
                 break;
             }
         }
-        
+
         pthread_mutex_unlock(&clients_mutex);
 
         // Allocate and initialize arguments struct.
@@ -131,18 +128,15 @@ int main(){
 
         pthread_detach(client_thread);
         /*Code*/
-
-
     }
     if (client_socket < 0)
     {
         perror("Failed to accept client connection!\n");
         return -1;
     }
-    
+
     // Close the socket after handling the client
     close(server_socket);
-
 
     return 0;
 }

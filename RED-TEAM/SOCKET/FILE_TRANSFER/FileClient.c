@@ -15,14 +15,13 @@
 
 char path[255];
 
-int sendFile(int client_socket, char *filename, long fileSize){
+// int sendFile(int client_socket, char *filename, long fileSize){
 
-    send(client_socket, filename, strlen(filename), 0);
-    send(client_socket, fileSize, strlen(fileSize), 0);
-    
+//     send(client_socket, filename, strlen(filename), 0);
+//     send(client_socket, fileSize, strlen(fileSize), 0);
 
-    return 0;
-}
+//     return 0;
+// }
 
 int main()
 {
@@ -56,8 +55,8 @@ int main()
 
     printf("Enter the file path of the file you want to send:\n");
     printf("=================================================\n");
-    scanf("%s", &path);
-    
+    scanf("%s", path);
+
     // Get the filename.
     char *extractFilename = strrchr(path, '/');
     char *filename = extractFilename++;
@@ -75,11 +74,10 @@ int main()
 
     printf("%ld\n", fileSize);
 
-    sendFile(client_socket, filename, fileSize);
+    // sendFile(client_socket, filename, fileSize);
 
     printf("Closing Program...\n");
-    
-    
+
     close(client_socket);
 
     return 0;
