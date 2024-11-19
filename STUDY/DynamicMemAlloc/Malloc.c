@@ -47,5 +47,17 @@ int main()
 
     free(array); // Always free the allocated memory after use.
 
+    // Try Allocating a very large block.
+    int *ptr = (int *)malloc(10000000000 * sizeof(int));
+    if (ptr == NULL)
+    {
+        printf("Memory allocation failed! Not enough memory.\n");
+    }
+    else
+    {
+        printf("Memory allocation succeeded!\n");
+        free(ptr); // Free memory only if allocation succeeds
+    }
+
     return 0;
 }
