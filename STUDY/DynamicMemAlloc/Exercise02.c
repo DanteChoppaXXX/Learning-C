@@ -15,6 +15,20 @@ Write a program that:
 
 int main()
 {
+    int sizeOfArray;
+    // Prompt the user to input the size of an array.
+    printf("Enter a size for an Array:\n");
+    printf("==========================\n");
+    scanf("%d", &sizeOfArray);
+
+    // Allocate memory for the array using malloc.
+    int *array = (int*)malloc(sizeOfArray * sizeof(int));
+    // Check for successful allocation.
+    if (number == NULL)
+    {
+        printf("Memory Allocation Failed!");
+        return 1; // Exit if malloc fails.
+    }
 
     return 0;
 }
