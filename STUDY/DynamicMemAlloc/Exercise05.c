@@ -14,6 +14,31 @@ Write a program that:
 
 int main()
 {
+    // Prompt the user to input a string length.
+    int lengthOfString;
+    printf("Enter the length of any word:\n");
+    printf("==============================\n");
+    scanf("%d", &lengthOfString);
+
+    // Allocate memory for a string of that length using malloc.
+    char *string = (char *)malloc(lengthOfString * sizeof(char));
+
+    // Check for successful allocation.
+    if (string == NULL)
+    {
+        printf("Memory Allocation Failed!");
+        return 1; // Exit if malloc fails.
+    }
+
+    // Read the string from the user and print it.
+    printf("Enter the word:\n");
+    printf("===============\n");
+    scanf("%s", string);
+
+    printf("The word is: %s\n", string);
+
+    // Free the allocated memory.
+    free(string);    // Always free the allocated memory.
 
     return 0;
 }

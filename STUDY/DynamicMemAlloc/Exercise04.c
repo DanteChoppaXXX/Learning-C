@@ -14,6 +14,19 @@ Write a program that:
 
 int main()
 {
+    // Tries to allocate a very large block of memory using malloc (e.g., 1000000000 * sizeof(int)).
+    int *ptr = (int *)malloc(10000000000 * sizeof(int));
+
+    // Check for successful allocation.
+    if (ptr == NULL)
+    {
+        printf("Memory Allocation Failed! Not Enough Memory!\n");
+        return 1; // Exit if malloc fails.
+    }
+    else{
+        printf("Memory Allocation Successful!\n");
+        free(ptr);  // Always free the allocated memory after use.
+    }
 
     return 0;
 }
