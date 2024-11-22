@@ -57,6 +57,22 @@ int main()
         printf("%d\n", integers[i]);
     }
 
+    // Reallocate the array to store only the first 2 integers.
+    size = 2;
+    integers = (int *)realloc(integers, size * sizeof(int));
+    // Check for successful reallocation.
+    if (integers == NULL)
+    {
+        printf("Memory Reallocation Failed!");
+        return 1; // Exit if malloc fails.
+    }
+
+    // Display the values of the entire array.
+    for (int i = 0; i < size; i++)
+    {
+        printf("%d\n", integers[i]);
+    }
+
     // Free the memory.
     free(integers); // Always the free the memory after use.
     return 0;
