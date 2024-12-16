@@ -3,6 +3,18 @@
 
 //  READING AND WRITING STRUCTS TO BINARY FILE.
 
+/*
+Write a function to:
+
+Create an array of 5 books.
+Write the array of books to a binary file called books.bin.
+
+Write another function to:
+
+Read the book records from books.bin into a buffer.
+Print the details of each book.
+*/
+
 struct Book
 {
     int id;
