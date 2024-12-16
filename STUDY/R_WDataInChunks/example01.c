@@ -1,28 +1,35 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// WRITING INTEGERS TO A BINARY FILE.
+/*
+Key Function: fwrite()
+    size_t fwrite(const void* ptr, size_t size, size_t count, FILE* stream);
+    Returns: Number of elements successfully written.
+*/
 int main()
 {
-    FILE *file = fopen("data.bin", "rb"); // Open a binary file for reading
+    FILE *file = fopen("data.bin", "wb"); // Open a binary file for writing
     if (file == NULL)
     {
         printf("Error opening file!\n");
         return 1;
     }
 
-    int buffer[3]; // Buffer to store chunks of 3 integers
-    size_t elements_read;
+    int numbers[] = {10, 20, 30, 40, 50}; // Integers to be written to file
 
-    printf("Reading data in chunks:\n");
+    size_t count = sizeof(numbers) / sizeof(numbers[0]); // Number of elements
 
-    // Read chunks of data
-    while ((elements_read = fread(buffer, sizeof(int), 3, file)) > 0)
+    // Write the array to the binary file
+    size_t written = fwrite(numbers, sizeof(int), count, file);
+
+    if (written == count)
     {
-        for (size_t i = 0; i < elements_read; i++)
-        {
-            printf("%d ", buffer[i]); // Print each integer
-        }
-        printf("\n");
+        printf("%zu Integers successfully written to file!\n", written);
+    }
+    else
+    {
+        printf("Error writing integers to file!\n");
     }
 
     fclose(file); // Close the file
