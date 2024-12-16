@@ -82,9 +82,11 @@ void readStruct()
         // Display books details.
         printf("\nBooks Details:\n");
         printf("==============\n");
+        printf("%-5s %-30s %10s\n", "ID", "Title", "Price($)");
+        printf("===============================================\n");
         for (size_t i = 0; i < read; i++)
         {
-            printf("%d, %s, $%.2f\n", buffer[i].id, buffer[i].title, buffer[i].price);
+            printf("%-5d %-30s %9.2f\n", buffer[i].id, buffer[i].title, buffer[i].price);
         }
     }
     else
