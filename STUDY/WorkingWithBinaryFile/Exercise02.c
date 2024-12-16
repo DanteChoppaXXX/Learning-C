@@ -19,6 +19,7 @@ int main()
 
     int buffer[8]; // Buffer to store the integers
 
+    // Calculate the number of integers in the array
     size_t count = sizeof(buffer) / sizeof(buffer[0]); // Number of elements in the array
 
     // Read data from the binary file.
@@ -38,6 +39,7 @@ int main()
     }
 
     fclose(file); // Close the file.
+    printf("File closed successfully.\n");
 
     return 0;
 }

@@ -19,6 +19,7 @@ int main()
 
     int numbers[] = {1, 2, 3, 4, 5, 6, 7, 8}; // An array of 8 integers
 
+    // Calculate the number of integers in the array
     size_t count = sizeof(numbers) / sizeof(numbers[0]); // Number of elements in the array
 
     // Write integers to the binary file.
@@ -34,5 +35,7 @@ int main()
     }
 
     fclose(file); // Close the file
+    printf("File closed successfully.\n");
+
     return 0;
 }
