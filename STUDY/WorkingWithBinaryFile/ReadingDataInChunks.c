@@ -6,7 +6,7 @@
 int main()
 {
 
-    FILE *file = fopen("numbers_chunked.bin", "rb"); // Open binary file for reading in chunk
+    FILE *file = fopen("numbers_chunked.bin", "rb"); // Open binary file for reading in chunks
     if (file == NULL)
     {
         printf("Error opening file for reading!\n");
@@ -16,6 +16,7 @@ int main()
     int buffer[100]; // read 100 integers at a time
     size_t chunk_size = sizeof(buffer) / sizeof(buffer[0]);
     size_t read = 0;
+
     // Display the integers read.
     printf("\nIntegers Read:\n");
     printf("==============\n");
