@@ -71,6 +71,13 @@ void readData()
         exit(1);
     }
 
+    // Get the file size.
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    rewind(file);
+
+    printf("The File size is: %ld bytes\n\n", file_size);
+
     float buffer[250]; // read 250 floats at a time
     size_t chunk_size = sizeof(buffer) / sizeof(buffer[0]);
     size_t read = 0;
