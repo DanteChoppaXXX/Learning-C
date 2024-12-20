@@ -33,6 +33,14 @@ void writeData()
         numbers[i] = i + 1.0;
     }
 
+    // // Reversed Order.
+    // int count = 2000.0;
+    // for (int i = 0; i < 2000; i++)
+    // {
+    //     numbers[i] = count;
+    //     count--;
+    // }
+
     size_t chunk_size = 250;
     size_t total_numbers = sizeof(numbers) / sizeof(numbers[0]);
     size_t written = 0;
@@ -68,9 +76,12 @@ void readData()
     size_t read = 0;
     size_t count = 0;
     float sum = 0;
+    int chunk_count = 1;
 
     while ((read = fread(buffer, sizeof(float), chunk_size, file)) > 0)
     {
+        printf("Chunk %d:\n", chunk_count);
+        printf("=========\n");
         for (size_t i = 0; i < read; i++)
         {
             printf("| %.1f |", buffer[i]);
@@ -82,6 +93,8 @@ void readData()
             }
         }
         printf("--- End of Chunk ---\n\n");
+        chunk_count++;
+
         for (size_t i = 0; i < read; i++)
         {
             sum += buffer[i];
