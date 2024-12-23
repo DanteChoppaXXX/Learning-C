@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
 
 #define PORT 8080 // Port number for the server
+#define BACKLOG 5 // Maximum number of queued connections
 
 int main()
 {
@@ -38,10 +40,32 @@ int main()
     printf("Socket successfully bound to port %d!\n", PORT);
 
     // Start listening
-    /* code */
+    if (listen(server_socket, BACKLOG) > 0)
+    {
+        perror("Listening Failed!\n");
+        close(server_socket); // Close the socket if listening fails
+        exit(EXIT_FAILURE);
+    }
 
-    
-    // Close the socket.
+    printf("Server is Listening on port %d...\n", PORT);
+
+    // Accept incoming connections
+    struct sockaddr_in client_address;
+    socklen_t client_len = sizeof(client_address);
+
+    int client_socket = accept(server_socket, (struct sockaddr *)&client_address, &client_len);
+
+    if (client_socket < 0)
+    {
+        perror("Accept failed\n");
+        close(server_socket);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Client connected successfully!\n");
+
+    // Close the sockets.
+    close(client_socket);
     close(server_socket);
 
     return 0;
