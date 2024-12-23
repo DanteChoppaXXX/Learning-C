@@ -69,6 +69,7 @@ int main()
 
     // Close the socket
     close(client_socket);
+    printf("Disconnected from server.\n");
 
     return 0;
 }
