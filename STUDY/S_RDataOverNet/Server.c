@@ -7,6 +7,7 @@
 
 #define PORT 8080 // Port number for the server
 #define BACKLOG 5 // Maximum number of queued connections
+#define BUFFER_SIZE 1024
 
 int main()
 {
@@ -63,6 +64,38 @@ int main()
     }
 
     printf("Client connected successfully!\n");
+
+    // Buffer for data transfer
+    char buffer[BUFFER_SIZE];
+
+    // Receive data from the client
+    ssize_t bytes_received = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
+    if (bytes_received > 0)
+    {
+        buffer[bytes_received] = '\0'; // Null-terminate the received data
+        printf("Client: %s\n", buffer);
+
+        // Send a response.
+        char *message = "Welcome To The Matrix!";
+        ssize_t bytes_sent = send(client_socket, message, strlen(message), 0);
+        if (bytes_sent == -1)
+        {
+            perror("Send Failed");
+            close(client_socket);
+            close(server_socket);
+            exit(EXIT_FAILURE);
+        }
+
+        printf("Sent %zd bytes to client.\n", bytes_sent);
+    }
+    else if (bytes_received == 0)
+    {
+        printf("Client disconnected!\n");
+    }
+    else
+    {
+        perror("Receive failed!");
+    }
 
     // Close the sockets.
     close(client_socket);
