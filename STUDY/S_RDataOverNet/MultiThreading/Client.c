@@ -33,43 +33,58 @@ int main()
     if (connect(client_socket, (struct sockaddr *)&server_address, server_addr_len) < 0)
     {
         perror("Connection Failed!");
+        printf("======================================\n");
         close(client_socket);
         exit(1);
     }
 
     printf("Connection Successful!\n");
+    printf("======================\n");
 
     // Send data to the server
-    char *message = "Hello Matrix!\n";
-    ssize_t bytes_sent = send(client_socket, message, strlen(message), 0);
-    if (bytes_sent == -1)
-    {
-        perror("Sending Failed!");
-        close(client_socket);
-        exit(1);
-    }
 
-    printf("Message successfully sent to the server!\n");
-
-    // Receive response from the server
-    char buffer[BUFFER_SIZE];
-
-    ssize_t bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
-    if (bytes_received > 0)
+    while (1)
     {
-        buffer[bytes_received] = '\0'; // NULL-terminate the data
-        printf("Server: %s\n", buffer);
-    }
-    else
-    {
-        perror("Receive Failed!");
-        close(client_socket);
-        exit(1);
+        char *message = malloc(BUFFER_SIZE);
+
+        // Get message input to send to server.
+        printf("Client: ");
+        fgets(message, BUFFER_SIZE, stdin);
+        printf("======\n");
+
+        ssize_t bytes_sent = send(client_socket, message, strlen(message), 0);
+        if (bytes_sent == -1)
+        {
+            perror("Sending Failed!");
+            close(client_socket);
+            exit(1);
+        }
+
+        // printf("Message successfully sent to the server!\n");
+
+        // Receive response from the server
+        char buffer[BUFFER_SIZE];
+
+        ssize_t bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
+        if (bytes_received > 0)
+        {
+            buffer[bytes_received] = '\0'; // NULL-terminate the data
+            printf("Server: %s", buffer);
+            printf("======\n");
+        }
+        else
+        {
+            perror("Disconnected!");
+            printf("========================\n");
+            close(client_socket);
+            exit(1);
+        }
     }
 
     // Close the socket
     close(client_socket);
     printf("Disconnected from server.\n");
+    printf("=========================\n");
 
     return 0;
 }

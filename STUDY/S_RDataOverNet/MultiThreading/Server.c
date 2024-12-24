@@ -30,7 +30,7 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    printf("Socket created successfully! Socket descriptor: %d\n", server_socket);
+    // printf("Socket created successfully! Socket descriptor: %d\n", server_socket);
 
     // Define server address.
     address.sin_family = AF_INET;         // IPv4
@@ -45,7 +45,7 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    printf("Socket successfully bound to port %d!\n", PORT);
+    // printf("Socket successfully bound to port %d!\n", PORT);
 
     // Start listening
     if (listen(server_socket, MAX_CLIENTS) < 0)
@@ -55,7 +55,10 @@ int main()
         exit(EXIT_FAILURE);
     }
 
+    printf("===THE MATRIX===\n");
+    printf("================\n\n");
     printf("Server is Listening on port %d...\n", PORT);
+    printf("===================================\n");
 
     while (1)
     {
@@ -69,6 +72,7 @@ int main()
         }
 
         printf("Client connected successfully!\n");
+        printf("==============================\n");
 
         // Create a new thread for each client
         pthread_t thread_id;
@@ -105,10 +109,16 @@ void *handle_client(void *arg)
     while ((bytes_received = recv(client_socket, buffer, sizeof(buffer) - 1, 0)) > 0)
     {
         buffer[bytes_received] = '\0'; // Null-terminate the received data
-        printf("Client: %s\n", buffer);
+        printf("Client: %s", buffer);
+        printf("======\n");
 
         // Send a response.
-        char *message = "Welcome To The Matrix!";
+        char *message = malloc(BUFFER_SIZE);
+
+        // Get message input to send to client.
+        printf("Server: ");
+        fgets(message, BUFFER_SIZE, stdin);
+
         ssize_t bytes_sent = send(client_socket, message, strlen(message), 0);
         if (bytes_sent == -1)
         {
@@ -117,16 +127,18 @@ void *handle_client(void *arg)
             exit(EXIT_FAILURE);
         }
 
-        printf("Sent %zd bytes to client.\n", bytes_sent);
+        // printf("Sent %zd bytes to client.\n", bytes_sent);
     }
 
     if (bytes_received == 0)
     {
         printf("Client disconnected!\n");
+        printf("====================\n");
     }
     else
     {
         perror("Receive failed!");
+        printf("=========================\n");
     }
 
     close(client_socket); // Close client socket
