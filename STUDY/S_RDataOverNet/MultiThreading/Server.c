@@ -114,7 +114,6 @@ void *handle_client(void *arg)
         {
             perror("Send Failed");
             close(client_socket);
-            close(server_socket);
             exit(EXIT_FAILURE);
         }
 
@@ -129,8 +128,7 @@ void *handle_client(void *arg)
     {
         perror("Receive failed!");
     }
-}
 
-close(client_socket); // Close client socket
-pthread_exit(NULL);   // Exit thread
+    close(client_socket); // Close client socket
+    pthread_exit(NULL);   // Exit thread
 }
