@@ -11,8 +11,58 @@
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 6302
 
-void *receive_messages(void *socket_desc){
-    int client_socket = *(int *)socket_desc;
+typedef struct
+{
+    int client_socket;
+    char *username;
+} ClientArgs;
+
+void *send_messages(void *args)
+{
+    ClientArgs *client_args = (ClientArgs *)args;
+    int client_socket = client_args->client_socket;
+    char *username = client_args->username;
+    char client_message[2000], server_message[2000];
+
+    while (1)
+    {
+
+        // Get a message to send to the server.
+        printf("%s #=> ", username);
+        fgets(client_message, sizeof(client_message), stdin);
+
+        char buffer[2000];
+        snprintf(buffer, sizeof(buffer), "%s #=> %s\n", username, client_message);
+
+        // Send the message to the server.
+        if (send(client_socket, buffer, strlen(buffer), 0) < 0)
+        {
+            perror("Failed to send message to the server!");
+            break;
+        }
+
+        // memset(server_message, 0, sizeof(server_message));
+
+        // if (recv(client_socket, server_message, sizeof(server_message), 0) < 0)
+        // {
+        //     perror("Couldn't receive message from server!\n");
+        //     break;
+        // }
+
+        // printf("%s\n", server_message);
+    }
+
+    // Close the socket when done.
+    free(client_args);
+    close(client_socket);
+    pthread_exit(NULL);
+}
+
+void *receive_messages(void *args)
+{
+    ClientArgs *client_args = (ClientArgs *)args;
+    int client_socket = client_args->client_socket;
+    char *username = client_args->username;
     char buffer[1024];
     int bytes_received;
 
@@ -21,7 +71,7 @@ void *receive_messages(void *socket_desc){
         buffer[bytes_received] = '\0';
         printf("%s\n", buffer);
     }
-    
+
     if (bytes_received == 0)
     {
         printf("Server Disconnected!\n");
@@ -30,11 +80,11 @@ void *receive_messages(void *socket_desc){
     {
         perror("Error receiving data\n");
     }
-    
+
     // Close the socket when done.
+    free(client_args);
     close(client_socket);
     pthread_exit(NULL);
-    
 }
 
 int main()
@@ -43,8 +93,8 @@ int main()
     char username[100];
     int client_socket;
     struct sockaddr_in server_addr;
-    char client_message[2000], server_message[2000];
-    pthread_t receive_thread;
+    char server_message[2000];
+    pthread_t receive_thread, send_thread;
 
     printf("Choose a username to chat with: ");
     fgets(username, sizeof(username), stdin);
@@ -88,43 +138,36 @@ int main()
     recv(client_socket, server_message, sizeof(server_message), 0);
     printf("%s\n", server_message);
 
-    // Create a thread for receiving messages.
-    if (pthread_create(&receive_thread, NULL, receive_messages, (void *)&client_socket) != 0)
+    // Allocate and initialize arguments struct.
+    ClientArgs *client_args = malloc(sizeof(ClientArgs));
+    if (client_args == NULL)
     {
-        perror("Failed to create thread!\n");
+        perror("Memory allocation failed");
         return 1;
     }
-    
-    while (1)
+
+    client_args->client_socket = client_socket;
+    client_args->username = username;
+
+    // Create a thread for sending messages.
+    if (pthread_create(&send_thread, NULL, send_messages, (void *)client_args) != 0)
     {
-
-        // Get a message to send to the server.
-        printf("%s #=> ", username);
-        fgets(client_message, sizeof(client_message), stdin);
-        
-        char buffer[1024];
-        snprintf(buffer, sizeof(buffer), "%s #=> %s\n", username, client_message);
-
-        // Send the message to the server.
-        if (send(client_socket, buffer, strlen(buffer), 0) < 0)
-        {
-            perror("Failed to send message to the client!");
-            break;
-        }
-
-        memset(server_message, 0, sizeof(server_message));
-
-        if (recv(client_socket, server_message, sizeof(server_message), 0) < 0)
-        {
-            perror("Couldn't receive message from server!\n");
-            break;
-        }
-
-        printf("%s\n", server_message);
+        perror("Failed to create thread!\n");
+        free(client_args);
+        return 1;
     }
 
-    close(client_socket);
+    // Create a thread for receiving messages.
+    if (pthread_create(&receive_thread, NULL, receive_messages, (void *)client_args) != 0)
+    {
+        perror("Failed to create thread!\n");
+        free(client_args);
+        return 1;
+    }
+
+    pthread_join(send_thread, NULL);
     pthread_join(receive_thread, NULL);
+    close(client_socket);
 
     return 0;
 }

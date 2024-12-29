@@ -14,11 +14,12 @@
 #define USERNAME_SIZE 256
 #define BUFFER_SIZE 1024
 
-int client_sockets[MAX_CLIENTS];    // Array to store client sockets.
-pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;  // Mutex for thread safety.
+int client_sockets[MAX_CLIENTS];                           // Array to store client sockets.
+pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for thread safety.
 
 // Function to broadcast messages to all connected clients.
-void broadcastMessage(char *message, int sender_socket){
+void broadcastMessage(char *message, int sender_socket)
+{
     pthread_mutex_lock(&clients_mutex);
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
@@ -26,10 +27,8 @@ void broadcastMessage(char *message, int sender_socket){
         {
             send(client_sockets[i], message, strlen(message), 0);
         }
-        
     }
     pthread_mutex_unlock(&clients_mutex);
-    
 }
 
 typedef struct
@@ -42,7 +41,6 @@ void *clientHandler(void *args)
 {
     ClientArgs *client_args = (ClientArgs *)args;
     int client_socket = client_args->client_socket;
-    char *username = client_args->username;
     char buffer[BUFFER_SIZE], *welcomeMessage;
 
     welcomeMessage = "WELCOME TO THE CHAT ROOM\n==========================\n";
@@ -55,8 +53,8 @@ void *clientHandler(void *args)
         memset(buffer, 0, BUFFER_SIZE);
 
         // Receive a message from the client.
-        int bytes_recieved = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
-        if (bytes_recieved <= 0)
+        int bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+        if (bytes_received <= 0)
         {
             close(client_socket);
             pthread_mutex_lock(&clients_mutex);
@@ -72,11 +70,11 @@ void *clientHandler(void *args)
             break;
         }
 
-        buffer[bytes_recieved] = '\0';
+        buffer[bytes_received] = '\0';
+        printf("Received message from a user.\n");
 
         // Send the message to the clients.
         broadcastMessage(buffer, client_socket);
-
     }
     // Close client socket and free memory
     close(client_socket);
@@ -134,7 +132,7 @@ int main()
         printf("=====================\n");
 
         // Add the client socket to the client_sockets array.
-        pthread_mutex_lock(&clients_mutex);     // Lock the mutex to prevent race conditions.
+        pthread_mutex_lock(&clients_mutex); // Lock the mutex to prevent race conditions.
 
         for (int i = 0; i < MAX_CLIENTS; i++)
         {
@@ -145,9 +143,8 @@ int main()
                 printf("=========================================\n");
                 break;
             }
-            
         }
-        
+
         pthread_mutex_unlock(&clients_mutex);
         // Receive data into 'username' buffer.
         int bytes_received = recv(client_socket, username, USERNAME_SIZE - 1, 0);

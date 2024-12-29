@@ -1,4 +1,4 @@
-#include <stdio.h>
+web #include<stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -12,7 +12,7 @@
 #define SERVER_PORT 6302
 #define MAX_CLIENTS 5
 
-int client_sockets[MAX_CLIENTS];                           // Array to store client sockets.
+    int client_sockets[MAX_CLIENTS];                       // Array to store client sockets.
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for thread safety.
 
 typedef struct
