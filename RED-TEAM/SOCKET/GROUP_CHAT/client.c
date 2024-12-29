@@ -52,9 +52,6 @@ void *send_messages(void *args)
         // printf("%s\n", server_message);
     }
 
-    // Close the socket when done.
-    free(client_args);
-    close(client_socket);
     pthread_exit(NULL);
 }
 
@@ -81,9 +78,6 @@ void *receive_messages(void *args)
         perror("Error receiving data\n");
     }
 
-    // Close the socket when done.
-    free(client_args);
-    close(client_socket);
     pthread_exit(NULL);
 }
 
@@ -167,6 +161,9 @@ int main()
 
     pthread_join(send_thread, NULL);
     pthread_join(receive_thread, NULL);
+
+    // Clean Up.
+    free(client_args);
     close(client_socket);
 
     return 0;
