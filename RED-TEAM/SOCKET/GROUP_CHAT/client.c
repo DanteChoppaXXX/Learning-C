@@ -11,55 +11,52 @@
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 6302
 
+volatile int is_connected = 1;                    // Shared flag for connection status
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER; // Mutex for thread safety
+
+// Struct to hold client arguments
 typedef struct
 {
     int client_socket;
     char *username;
 } ClientArgs;
 
+// Function for sending messages
 void *send_messages(void *args)
 {
     ClientArgs *client_args = (ClientArgs *)args;
     int client_socket = client_args->client_socket;
     char *username = client_args->username;
-    char client_message[2000], server_message[2000];
+    char client_message[2000];
 
-    while (1)
+    while (is_connected)
     {
-
-        // Get a message to send to the server.
         printf("%s #=> ", username);
-        fgets(client_message, sizeof(client_message), stdin);
+        fgets(client_message, sizeof(client_message) - 1, stdin);
+        client_message[strcspn(client_message, "\n")] = '\0'; // Remove newline
 
         char buffer[2000];
         snprintf(buffer, sizeof(buffer), "%s #=> %s\n", username, client_message);
 
-        // Send the message to the server.
+        pthread_mutex_lock(&lock);
         if (send(client_socket, buffer, strlen(buffer), 0) < 0)
         {
             perror("Failed to send message to the server!");
+            is_connected = 0;
+            pthread_mutex_unlock(&lock);
             break;
         }
-
-        // memset(server_message, 0, sizeof(server_message));
-
-        // if (recv(client_socket, server_message, sizeof(server_message), 0) < 0)
-        // {
-        //     perror("Couldn't receive message from server!\n");
-        //     break;
-        // }
-
-        // printf("%s\n", server_message);
+        pthread_mutex_unlock(&lock);
     }
 
     pthread_exit(NULL);
 }
 
+// Function for receiving messages
 void *receive_messages(void *args)
 {
     ClientArgs *client_args = (ClientArgs *)args;
     int client_socket = client_args->client_socket;
-    char *username = client_args->username;
     char buffer[1024];
     int bytes_received;
 
@@ -75,15 +72,15 @@ void *receive_messages(void *args)
     }
     else if (bytes_received < 0)
     {
-        perror("Error receiving data\n");
+        perror("Error receiving data");
     }
 
+    is_connected = 0;
     pthread_exit(NULL);
 }
 
 int main()
 {
-
     char username[100];
     int client_socket;
     struct sockaddr_in server_addr;
@@ -96,73 +93,79 @@ int main()
 
     if (strlen(username) < 3)
     {
-        printf("You must enter a username to process!\n");
+        printf("You must enter a username to proceed!\n");
         return 1;
     }
 
-    // Create the client socket.
+    // Create the client socket
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket < 0)
     {
-        perror("Failed to create socket!\n");
+        perror("Failed to create socket");
         return -1;
     }
 
-    // Setup the server address structure.
+    // Setup the server address structure
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(SERVER_PORT);
     server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
 
-    // Connect to the server.
+    // Connect to the server
     if (connect(client_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
-        perror("Connection Failed!\n");
-        printf("==================\n");
+        perror("Connection Failed");
+        close(client_socket);
         return -1;
     }
+
     printf("Connection Successful!\n");
-    printf("======================\n");
-    // Send username to server.
+
+    // Send username to server
     send(client_socket, username, strlen(username), 0);
 
-    // char *message;
-    // message = "HELLO MATRIX!\n";
-    // Communicate with the server.
-    // Display welcome message from server.
+    // Display welcome message from server
     recv(client_socket, server_message, sizeof(server_message), 0);
     printf("%s\n", server_message);
 
-    // Allocate and initialize arguments struct.
+    // Allocate and initialize arguments struct
     ClientArgs *client_args = malloc(sizeof(ClientArgs));
     if (client_args == NULL)
     {
         perror("Memory allocation failed");
+        close(client_socket);
         return 1;
     }
 
     client_args->client_socket = client_socket;
-    client_args->username = username;
+    client_args->username = strdup(username);
 
-    // Create a thread for sending messages.
+    // Create a thread for sending messages
     if (pthread_create(&send_thread, NULL, send_messages, (void *)client_args) != 0)
     {
-        perror("Failed to create thread!\n");
+        perror("Failed to create send thread");
+        free(client_args->username);
         free(client_args);
+        close(client_socket);
         return 1;
     }
 
-    // Create a thread for receiving messages.
+    // Create a thread for receiving messages
     if (pthread_create(&receive_thread, NULL, receive_messages, (void *)client_args) != 0)
     {
-        perror("Failed to create thread!\n");
+        perror("Failed to create receive thread");
+        pthread_cancel(send_thread);
+        free(client_args->username);
         free(client_args);
+        close(client_socket);
         return 1;
     }
 
+    // Wait for threads to finish
     pthread_join(send_thread, NULL);
     pthread_join(receive_thread, NULL);
 
-    // Clean Up.
+    // Cleanup
+    free(client_args->username);
     free(client_args);
     close(client_socket);
 
