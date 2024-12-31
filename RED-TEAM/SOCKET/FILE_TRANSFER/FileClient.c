@@ -15,11 +15,13 @@
 
 char path[255];
 
+#pragma pack(1) // Disable padding
 typedef struct
 {
     char *filename;
     long fileSize;
 } FileDetails;
+#pragma pack()
 
 // int sendFile(int client_socket, char *filename, long fileSize){
 
@@ -88,8 +90,12 @@ int main()
     fileDetails->fileSize = fileSize;
     fileDetails->filename = filename;
 
-    size_t sentDetails = send(client_socket, fileDetails, sizeof(fileDetails), 0);
-    if (sentDetails <= 0)
+    // serialize the file details struct before sending.
+    char buffer[sizeof(FileDetails)]; // Buffer to store struct
+
+    memcpy(buffer, fileDetails, sizeof(FileDetails)); // Copy the struct into the buffer
+
+    if (send(client_socket, buffer, sizeof(FileDetails), 0) < 0)
     {
         perror("Sending Failed!");
         return 1;
