@@ -15,6 +15,12 @@
 
 char path[255];
 
+typedef struct
+{
+    char *filename;
+    long fileSize;
+} FileDetails;
+
 // int sendFile(int client_socket, char *filename, long fileSize){
 
 //     send(client_socket, filename, strlen(filename), 0);
@@ -72,8 +78,24 @@ int main()
     long fileSize;
     fileSize = file_stat.st_size;
 
-    printf("%ld\n", fileSize);
+    // Allocate memory for the file details struct.
+    FileDetails *fileDetails = malloc(sizeof(FileDetails));
+    if (fileDetails == NULL)
+    {
+        perror("Memory allocation failed");
+    }
 
+    fileDetails->fileSize = fileSize;
+    fileDetails->filename = filename;
+
+    size_t sentDetails = send(client_socket, fileDetails, sizeof(fileDetails), 0);
+    if (sentDetails <= 0)
+    {
+        perror("Sending Failed!");
+        return 1;
+    }
+
+    printf("Sending file of %ld bytes...\n", fileSize);
     // sendFile(client_socket, filename, fileSize);
 
     printf("Closing Program...\n");

@@ -1,4 +1,4 @@
-web #include<stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -12,7 +12,7 @@ web #include<stdio.h>
 #define SERVER_PORT 6302
 #define MAX_CLIENTS 5
 
-    int client_sockets[MAX_CLIENTS];                       // Array to store client sockets.
+int client_sockets[MAX_CLIENTS];                           // Array to store client sockets.
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for thread safety.
 
 typedef struct
@@ -22,10 +22,12 @@ typedef struct
     long fileSize;
 } ClientArgs;
 
-// int receiveFile(int client_socket, char *filename, long fileSize){
+void *receiveFileDetails()
+{
 
-//     return 0;
-// }
+    struct ClientArgs buffer[sizeof(ClientArgs)];
+    size_t fileDetails = recv(client_sockets, buffer, sizeof(buffer), 0);
+}
 void *clientHandler(void *args)
 {
     ClientArgs *client_args = (ClientArgs *)args;
@@ -52,7 +54,7 @@ int main()
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_addr_size = sizeof(client_addr);
-    char *filename;
+    char *filename = malloc(100);
 
     // Create the server socket.
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
