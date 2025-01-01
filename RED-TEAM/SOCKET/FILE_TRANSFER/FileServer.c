@@ -19,31 +19,24 @@ pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for thread s
 typedef struct
 {
     int client_socket;
+    char filename[100];
+    long fileSize;
 
 } ClientArgs;
 
-// Struct to store file details.
-#pragma pack(1) // Disable padding
-typedef struct
+void *receiveClientArgs(const int client_socket)
 {
-    char filename[100];
-    long fileSize;
-} FileDetails;
-#pragma pack()
-
-void *receiveFileDetails(const int client_socket)
-{
-    FileDetails *fileDetails = malloc(sizeof(FileDetails));
-    if (fileDetails == NULL)
+    ClientArgs *client_args = malloc(sizeof(ClientArgs));
+    if (client_args == NULL)
     {
         perror("Memory allocation failed");
         close(client_socket);
         return NULL;
     }
 
-    char buffer[sizeof(FileDetails)];
+    char buffer[sizeof(ClientArgs)];
 
-    ssize_t bytesReceived = recv(client_socket, buffer, sizeof(FileDetails), 0);
+    ssize_t bytesReceived = recv(client_socket, buffer, sizeof(ClientArgs), 0);
     if (bytesReceived <= 0) // Handle errors or closed connections
     {
         if (bytesReceived == 0)
@@ -51,53 +44,39 @@ void *receiveFileDetails(const int client_socket)
         else
             perror("Receive Failed!");
 
-        free(fileDetails);
+        free(client_args);
         close(client_socket);
         return NULL;
     }
 
     printf("Received File Details!\n");
 
-    memcpy(fileDetails, buffer, sizeof(FileDetails)); // Copy the buffer into the struct
+    memcpy(client_args, buffer, sizeof(ClientArgs)); // Copy the buffer into the struct
 
     // Ensure filename is null-terminated to prevent undefined behavior
-    fileDetails->filename[sizeof(fileDetails->filename) - 1] = '\0';
+    client_args->filename[sizeof(client_args->filename) - 1] = '\0';
 
-    printf("Filename: %s\nFileSize: %ld bytes\n", fileDetails->filename, fileDetails->fileSize);
+    printf("Filename: %s\nFileSize: %ld bytes\n", client_args->filename, client_args->fileSize);
 
-    return fileDetails; // Return the struct pointer
+    return client_args; // Return the struct pointer
 }
 
 void *clientHandler(void *args)
 {
     ClientArgs *client_args = (ClientArgs *)args;
     int client_socket = client_args->client_socket;
-    // char *filename = client_args->filename;
-    // long fileSize = client_args->fileSize;
+    char filename[100];
+    strncpy(filename, client_args->filename, sizeof(filename));
+    long fileSize = client_args->fileSize;
     FILE *file;
 
-    receiveFileDetails(client_socket);
-
-    // ClientArgs buffer[sizeof(ClientArgs)];
-    // size_t fileDetails = recv(client_socket, buffer, sizeof(buffer), 0);
-    // if (fileDetails <= 0)
-    // {
-    //     perror("Receive Failed!");
-    //     exit(1);
-    // }
-
-    // buffer[fileDetails] = ""
-
-    // file = fopen(filename, "wb");
-
-    // Check if the file exists.
+    file = fopen(filename, "wb");
     if (file == NULL)
     {
-        printf("Failed to read file!(Hint: Make sure the file exist)\n");
+        printf("Failed to open file!(Hint: Make sure the file exist)\n");
+        close(client_socket);
+        exit(1);
     }
-
-    // recv(client_socket, filename, strlen(filename), 0);
-    // recv(client_socket, fileSize, strlen(fileSize), 0);
 }
 
 int main()
@@ -106,7 +85,8 @@ int main()
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_addr_size = sizeof(client_addr);
-    // char *filename = malloc(100);
+    char filename[100];
+    long fileSize;
 
     // Create the server socket.
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -166,8 +146,11 @@ int main()
             continue;
         }
 
+        receiveClientArgs(client_socket);
+
         client_args->client_socket = client_socket;
-        // client_args->filename = filename;
+        strncpy(client_args->filename, filename, sizeof(client_args->filename));
+        client_args->fileSize = fileSize;
 
         // printf("%s\n", username);
 

@@ -15,21 +15,14 @@
 
 char path[255];
 
-#pragma pack(1) // Disable padding
+// Struct to store client handler arguments.
 typedef struct
 {
-    char *filename;
+    int client_socket;
+    char filename[100];
     long fileSize;
-} FileDetails;
-#pragma pack()
 
-// int sendFile(int client_socket, char *filename, long fileSize){
-
-//     send(client_socket, filename, strlen(filename), 0);
-//     send(client_socket, fileSize, strlen(fileSize), 0);
-
-//     return 0;
-// }
+} ClientArgs;
 
 int main()
 {
@@ -81,21 +74,22 @@ int main()
     fileSize = file_stat.st_size;
 
     // Allocate memory for the file details struct.
-    FileDetails *fileDetails = malloc(sizeof(FileDetails));
-    if (fileDetails == NULL)
+    ClientArgs *client_args = malloc(sizeof(ClientArgs));
+    if (client_args == NULL)
     {
         perror("Memory allocation failed");
     }
 
-    fileDetails->fileSize = fileSize;
-    fileDetails->filename = filename;
+    client_args->fileSize = fileSize;
+    strncpy(client_args->filename, filename, sizeof(client_args->filename));
+    // client_args->filename = filename;
 
     // serialize the file details struct before sending.
-    char buffer[sizeof(FileDetails)]; // Buffer to store struct
+    char buffer[sizeof(ClientArgs)]; // Buffer to store struct
 
-    memcpy(buffer, fileDetails, sizeof(FileDetails)); // Copy the struct into the buffer
+    memcpy(buffer, client_args, sizeof(ClientArgs)); // Copy the struct into the buffer
 
-    if (send(client_socket, buffer, sizeof(FileDetails), 0) < 0)
+    if (send(client_socket, buffer, sizeof(ClientArgs), 0) < 0)
     {
         perror("Sending Failed!");
         return 1;
