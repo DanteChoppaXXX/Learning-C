@@ -82,7 +82,6 @@ int main()
 
     client_args->fileSize = fileSize;
     strncpy(client_args->filename, filename, sizeof(client_args->filename));
-    // client_args->filename = filename;
 
     // serialize the file details struct before sending.
     char buffer[sizeof(ClientArgs)]; // Buffer to store struct
