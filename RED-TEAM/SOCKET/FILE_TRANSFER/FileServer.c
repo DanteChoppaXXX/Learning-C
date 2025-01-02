@@ -24,9 +24,12 @@ typedef struct
 
 } ClientArgs;
 
-void *receiveClientArgs(const int client_socket)
+void *clientHandler(void *args)
 {
-    ClientArgs *client_args = malloc(sizeof(ClientArgs));
+    ClientArgs *client_args = (ClientArgs *)args;
+    int client_socket = client_args->client_socket;
+
+    client_args = malloc(sizeof(ClientArgs));
     if (client_args == NULL)
     {
         perror("Memory allocation failed");
@@ -50,33 +53,33 @@ void *receiveClientArgs(const int client_socket)
     }
 
     printf("Received File Details!\n");
+    printf("======================\n");
 
     memcpy(client_args, buffer, sizeof(ClientArgs)); // Copy the buffer into the struct
 
     // Ensure filename is null-terminated to prevent undefined behavior
     client_args->filename[sizeof(client_args->filename) - 1] = '\0';
 
-    printf("Filename: %s\nFileSize: %ld bytes\n", client_args->filename, client_args->fileSize);
+    // printf("Filename: %s\nFileSize: %ld bytes\n", client_args->filename, client_args->fileSize);
 
-    return client_args; // Return the struct pointer
-}
-
-void *clientHandler(void *args)
-{
-    ClientArgs *client_args = (ClientArgs *)args;
-    int client_socket = client_args->client_socket;
     char filename[100];
     strncpy(filename, client_args->filename, sizeof(filename));
     long fileSize = client_args->fileSize;
+
+    printf("Filename: %s\nFileSize: %ld bytes\n", filename, fileSize);
     FILE *file;
 
     file = fopen(filename, "wb");
     if (file == NULL)
     {
-        printf("Failed to open file!(Hint: Make sure the file exist)\n");
+        perror("Failed to open file!");
         close(client_socket);
         exit(1);
     }
+
+    printf("File opened successfully!\n");
+
+    fclose(file);
 }
 
 int main()
@@ -145,8 +148,6 @@ int main()
             perror("Memory allocation failed");
             continue;
         }
-
-        receiveClientArgs(client_socket);
 
         client_args->client_socket = client_socket;
         strncpy(client_args->filename, filename, sizeof(client_args->filename));
