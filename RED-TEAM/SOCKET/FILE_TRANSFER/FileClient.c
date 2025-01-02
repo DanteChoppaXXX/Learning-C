@@ -24,35 +24,11 @@ typedef struct
 
 } ClientArgs;
 
-int main()
+// Send File Function.
+void *sendFile(const int client_socket)
 {
 
-    int client_socket;
-    struct sockaddr_in server_addr;
     struct stat file_stat;
-
-    // Create the client socket.
-    client_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (client_socket < 0)
-    {
-        perror("Failed to create socket!\n");
-        return -1;
-    }
-
-    // Setup the server address structure.
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(SERVER_PORT);
-    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
-
-    // Connect to the server.
-    if (connect(client_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-    {
-        perror("Connection Failed!\n");
-        printf("==================\n");
-        return -1;
-    }
-    printf("Connection Successful!\n");
-    printf("======================\n");
 
     printf("Enter the file path of the file you want to send:\n");
     printf("=================================================\n");
@@ -61,7 +37,7 @@ int main()
     if (stat(path, &file_stat) < 0)
     {
         perror("Failed to get file description!\n");
-        return 1;
+        exit(1);
     }
 
     // Get the file size.
@@ -92,7 +68,7 @@ int main()
     if (send(client_socket, buffer, sizeof(ClientArgs), 0) < 0)
     {
         perror("Sending Failed!");
-        return 1;
+        exit(1);
     }
 
     printf("Sending file of %ld bytes...\n", fileSize);
@@ -102,7 +78,7 @@ int main()
     if (file == NULL)
     {
         perror("Failed to open file!\n");
-        return 1;
+        exit(1);
     }
     char chunk[1024];
     size_t bytes_read;
@@ -116,6 +92,176 @@ int main()
         printf("Sent %ld bytes\n", bytes_read);
     }
     fclose(file);
+}
+
+// Receive File Function.
+void *receiveFile(const int client_socket)
+{
+
+    // Receive list of files from the server.
+    char fileList[1024];
+    ssize_t listBytes;
+
+    printf("Received list of files!\n");
+    printf("========================\n");
+    while ((listBytes = recv(client_socket, fileList, sizeof(fileList), 0)) > 0)
+    {
+
+        if (listBytes <= 0)
+        {
+            if (listBytes == 0)
+                printf("Connection closed by peer.\n");
+            else
+                perror("Receive Failed!");
+
+            close(client_socket);
+            return NULL;
+        }
+
+        printf("%s\n", fileList);
+    }
+
+    ClientArgs *client_args = malloc(sizeof(ClientArgs));
+    if (client_args == NULL)
+    {
+        perror("Memory allocation failed");
+        close(client_socket);
+        return NULL;
+    }
+
+    char buffer[sizeof(ClientArgs)];
+
+    ssize_t bytesReceived = recv(client_socket, buffer, sizeof(ClientArgs), 0);
+    if (bytesReceived <= 0) // Handle errors or closed connections
+    {
+        if (bytesReceived == 0)
+            printf("Connection closed by peer.\n");
+        else
+            perror("Receive Failed!");
+
+        free(client_args);
+        close(client_socket);
+        return NULL;
+    }
+
+    printf("Received File Details!\n");
+    printf("======================\n");
+
+    memcpy(client_args, buffer, sizeof(ClientArgs)); // Copy the buffer into the struct
+
+    // Ensure filename is null-terminated to prevent undefined behavior
+    client_args->filename[sizeof(client_args->filename) - 1] = '\0';
+
+    // printf("Filename: %s\nFileSize: %ld bytes\n", client_args->filename, client_args->fileSize);
+
+    char filename[100];
+    strncpy(filename, client_args->filename, sizeof(filename));
+    long fileSize = client_args->fileSize;
+
+    printf("Filename: %s\nFileSize: %ld bytes\n", filename, fileSize);
+
+    FILE *file;
+
+    file = fopen(filename, "wb");
+    if (file == NULL)
+    {
+        perror("Failed to open file!");
+        close(client_socket);
+        exit(1);
+    }
+
+    printf("File opened successfully!\n");
+
+    // Receive data in chunks: In a loop, receive data from the client using recv() with a fixed buffer size.
+    char chunk[1024];
+    ssize_t bytes_written;
+    ssize_t total_bytes_received = 0;
+    while (total_bytes_received < fileSize)
+    {
+        ssize_t bytes_received = recv(client_socket, chunk, sizeof(chunk), 0);
+        if (bytes_received <= 0)
+        {
+            if (bytes_received == 0)
+                printf("Connection closed by peer.\n");
+            else
+                perror("Receive Failed!");
+
+            fclose(file);
+            close(client_socket);
+            return NULL;
+        }
+
+        bytes_written = fwrite(chunk, 1, bytes_received, file);
+        if (bytes_written != bytes_received)
+        {
+            perror("Failed to write to file!");
+            fclose(file);
+            close(client_socket);
+            return NULL;
+        }
+
+        total_bytes_received += bytes_received;
+    }
+    printf("File received successfully!\n");
+
+    fclose(file);
+}
+
+int main()
+{
+
+    int client_socket;
+    struct sockaddr_in server_addr;
+
+    // Create the client socket.
+    client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (client_socket < 0)
+    {
+        perror("Failed to create socket!\n");
+        return -1;
+    }
+
+    // Setup the server address structure.
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(SERVER_PORT);
+    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+
+    // Connect to the server.
+    if (connect(client_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    {
+        perror("Connection Failed!\n");
+        printf("==================\n");
+        return -1;
+    }
+    printf("Connection Successful!\n");
+    printf("======================\n");
+
+    // Ask the user if they want to send or receive a file.
+    int choice;
+    printf("Enter 1 to send a file, 2 to receive a file: ");
+    scanf("%d", &choice);
+
+    // Send choice to server.
+    if (send(client_socket, &choice, sizeof(choice), 0) < 0)
+    {
+        perror("Sending Failed!\n");
+        return -1;
+    }
+
+    if (choice == 1)
+    {
+        sendFile(client_socket);
+    }
+    else if (choice == 2)
+    {
+        receiveFile(client_socket);
+    }
+    else
+    {
+        printf("Invalid choice!\n");
+        close(client_socket);
+        return 0;
+    }
 
     printf("Closing Program...\n");
 

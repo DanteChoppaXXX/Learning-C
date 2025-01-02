@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include <sys/stat.h>
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 6302
@@ -24,12 +25,100 @@ typedef struct
 
 } ClientArgs;
 
-void *clientHandler(void *args)
+// Send File Function.
+void *sendFile(const int client_socket)
 {
-    ClientArgs *client_args = (ClientArgs *)args;
-    int client_socket = client_args->client_socket;
+    // Get list of files in the current directory.
+    char *path = ".";
+    // List the file in the current directory
+    char command[100];
+    snprintf(command, sizeof(command), "ls %s", path);
+    FILE *fp = popen(command, "r");
+    if (fp == NULL)
+    {
+        perror("Failed to execute command!\n");
+        exit(1);
+    }
+    char line[256];
+    while (fgets(line, sizeof(line), fp) != NULL)
+    {
+        // Send list of files to the client.
+        if (send(client_socket, line, strlen(line), 0) < 0)
+        {
+            perror("Sending Failed!\n");
+            exit(1);
+        }
+    }
+    pclose(fp);
 
-    client_args = malloc(sizeof(ClientArgs));
+    char filename[100];
+    struct stat file_stat;
+
+    if (stat(filename, &file_stat) < 0)
+    {
+        perror("Failed to get file description!\n");
+        exit(1);
+    }
+
+    // Get the file size.
+    long fileSize;
+    fileSize = file_stat.st_size;
+
+    // // Get the filename.
+    // char *extractFilename = strrchr(path, '/');
+    // char *filename = extractFilename + 1;
+
+    printf("%s\n", filename);
+
+    // Allocate memory for the file details struct.
+    ClientArgs *client_args = malloc(sizeof(ClientArgs));
+    if (client_args == NULL)
+    {
+        perror("Memory allocation failed");
+    }
+
+    client_args->fileSize = fileSize;
+    strncpy(client_args->filename, filename, sizeof(client_args->filename));
+
+    // serialize the file details struct before sending.
+    char buffer[sizeof(ClientArgs)]; // Buffer to store struct
+
+    memcpy(buffer, client_args, sizeof(ClientArgs)); // Copy the struct into the buffer
+
+    if (send(client_socket, buffer, sizeof(ClientArgs), 0) < 0)
+    {
+        perror("Sending Failed!");
+        exit(1);
+    }
+
+    printf("Sending file of %ld bytes...\n", fileSize);
+
+    // Read file in chunks: In a loop, read fixed-size chunks of data from the file.
+    FILE *file = fopen(filename, "rb");
+    if (file == NULL)
+    {
+        perror("Failed to open file!\n");
+        exit(1);
+    }
+    char chunk[1024];
+    size_t bytes_read;
+    while ((bytes_read = fread(chunk, 1, sizeof(chunk), file)) > 0)
+    {
+        if (send(client_socket, chunk, bytes_read, 0) < 0)
+        {
+            perror("Sending Failed!\n");
+            break;
+        }
+        printf("Sent %ld bytes\n", bytes_read);
+    }
+    fclose(file);
+}
+
+// Receive File Function.
+void *receiveFile(const int client_socket)
+{
+
+    ClientArgs *client_args = malloc(sizeof(ClientArgs));
     if (client_args == NULL)
     {
         perror("Memory allocation failed");
@@ -67,6 +156,7 @@ void *clientHandler(void *args)
     long fileSize = client_args->fileSize;
 
     printf("Filename: %s\nFileSize: %ld bytes\n", filename, fileSize);
+
     FILE *file;
 
     file = fopen(filename, "wb");
@@ -112,6 +202,34 @@ void *clientHandler(void *args)
     printf("File received successfully!\n");
 
     fclose(file);
+}
+
+void *clientHandler(void *args)
+{
+    ClientArgs *client_args = (ClientArgs *)args;
+    int client_socket = client_args->client_socket;
+
+    int choice;
+    // Receive choice from client.
+    recv(client_socket, &choice, sizeof(choice), 0);
+
+    if (choice == 1)
+    {
+        receiveFile(client_socket);
+    }
+    else if (choice == 2)
+    {
+        sendFile(client_socket);
+    }
+    else
+    {
+        printf("Invalid choice!\n");
+        close(client_socket);
+        return 0;
+    }
+
+    //  sendFile(client_socket, filename);
+
     free(client_args);
     close(client_socket);
 }
