@@ -14,6 +14,7 @@
 #define SERVER_PORT 6302
 
 char path[255];
+char path1[255];
 
 // Struct to store client handler arguments.
 typedef struct
@@ -57,6 +58,8 @@ int main()
     printf("Enter the file path of the file you want to send:\n");
     printf("=================================================\n");
     scanf("%s", path);
+
+    strcpy(path1, path);
 
     if (stat(path, &file_stat) < 0)
     {
@@ -111,7 +114,8 @@ int main()
     // sendFile(client_socket, filename, fileSize);
 
     // Read file in chunks: In a loop, read fixed-size chunks of data from the file.
-    FILE *file = fopen(path, "rb");
+    FILE *file = fopen(path1, "rb");
+    printf("%s\n", path1);
     if (file == NULL)
     {
         perror("Failed to open file!\n");
