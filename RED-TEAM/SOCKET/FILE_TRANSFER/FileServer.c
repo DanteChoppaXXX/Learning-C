@@ -30,28 +30,59 @@ void *sendFile(const int client_socket)
 {
     // Get list of files in the current directory.
     char *path = ".";
-    // List the file in the current directory
     char command[100];
+
     snprintf(command, sizeof(command), "ls %s", path);
+
     FILE *fp = popen(command, "r");
     if (fp == NULL)
     {
         perror("Failed to execute command!\n");
         exit(1);
     }
-    char line[256];
-    while (fgets(line, sizeof(line), fp) != NULL)
+
+    char line[4096];
+
+    // Read the output of the command into a buffer.
+    ssize_t bytesRead = fread(line, 1, sizeof(line), fp);
+    if (bytesRead <= 0)
     {
-        // Send list of files to the client.
-        if (send(client_socket, line, strlen(line), 0) < 0)
-        {
-            perror("Sending Failed!\n");
-            exit(1);
-        }
+        if (bytesRead == 0)
+            printf("No output from command!\n");
+        else
+            perror("Reading Failed!\n");
+        close(client_socket);
+        return NULL;
     }
+
+    // Null terminate the buffer.
+    line[bytesRead] = '\0';
+
+    // Send the buffer to the client.
+    if (send(client_socket, line, bytesRead, 0) < 0)
+    {
+        perror("Sending Failed!\n");
+        exit(1);
+    }
+
+    printf("Sent list of files!\n");
     pclose(fp);
 
+    // Receive filename from client.
     char filename[100];
+    ssize_t bytesReceived = recv(client_socket, filename, sizeof(filename), 0);
+    if (bytesReceived <= 0)
+    {
+        if (bytesReceived == 0)
+            printf("Client disconnected!\n");
+        else
+            perror("Receiving Failed!\n");
+        close(client_socket);
+        return NULL;
+    }
+    filename[bytesReceived] = '\0';
+    printf("Received filename: %s\n", filename);
+
     struct stat file_stat;
 
     if (stat(filename, &file_stat) < 0)
@@ -111,6 +142,8 @@ void *sendFile(const int client_socket)
         }
         printf("Sent %ld bytes\n", bytes_read);
     }
+    printf("File sent successfully!\n");
+    printf("=======================\n");
     fclose(file);
 }
 

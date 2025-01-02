@@ -91,6 +91,8 @@ void *sendFile(const int client_socket)
         }
         printf("Sent %ld bytes\n", bytes_read);
     }
+    printf("File sent successfully!\n");
+    printf("=======================\n");
     fclose(file);
 }
 
@@ -100,26 +102,40 @@ void *receiveFile(const int client_socket)
 
     // Receive list of files from the server.
     char fileList[1024];
-    ssize_t listBytes;
 
     printf("Received list of files!\n");
     printf("========================\n");
-    while ((listBytes = recv(client_socket, fileList, sizeof(fileList), 0)) > 0)
+
+    ssize_t listBytes; // Define listBytes here for clarity
+    listBytes = recv(client_socket, fileList, sizeof(fileList) - 1, 0);
+
+    fileList[listBytes] = '\0'; // Null-terminate the received data
+
+    printf("%s\n", fileList); // Print the received data
+
+    // After exiting the loop, check if there was an error or the connection was closed
+    if (listBytes == 0)
     {
-
-        if (listBytes <= 0)
-        {
-            if (listBytes == 0)
-                printf("Connection closed by peer.\n");
-            else
-                perror("Receive Failed!");
-
-            close(client_socket);
-            return NULL;
-        }
-
-        printf("%s\n", fileList);
+        printf("Connection closed by peer.\n");
     }
+    else if (listBytes < 0)
+    {
+        perror("Receive Failed!");
+    }
+
+    // Ask the user to choose file to download from the received list.
+    char filename[100];
+    printf("Enter the name of the file you want to download:\n");
+    printf("==================================================\n");
+    scanf("%s", filename);
+    printf("Sending filename to server...\n");
+
+    if (send(client_socket, filename, strlen(filename), 0) < 0)
+    {
+        perror("Sending Failed!");
+        exit(1);
+    }
+    printf("Filename sent successfully!\n");
 
     ClientArgs *client_args = malloc(sizeof(ClientArgs));
     if (client_args == NULL)
@@ -154,7 +170,6 @@ void *receiveFile(const int client_socket)
 
     // printf("Filename: %s\nFileSize: %ld bytes\n", client_args->filename, client_args->fileSize);
 
-    char filename[100];
     strncpy(filename, client_args->filename, sizeof(filename));
     long fileSize = client_args->fileSize;
 
