@@ -14,7 +14,6 @@
 #define SERVER_PORT 6302
 
 char path[255];
-char path1[255];
 
 // Struct to store client handler arguments.
 typedef struct
@@ -59,8 +58,6 @@ int main()
     printf("=================================================\n");
     scanf("%s", path);
 
-    strcpy(path1, path);
-
     if (stat(path, &file_stat) < 0)
     {
         perror("Failed to get file description!\n");
@@ -74,18 +71,6 @@ int main()
     // Get the filename.
     char *extractFilename = strrchr(path, '/');
     char *filename = extractFilename + 1;
-
-    // Remove the file extension.
-    char *extension = strrchr(filename, '.');
-    if (extension != NULL)
-    {
-        strncpy(extension, ".bin", 4);
-        //*extension = '\0';
-    }
-    else
-    {
-        printf("No file extension found.\n");
-    }
 
     printf("%s\n", filename);
 
@@ -111,11 +96,9 @@ int main()
     }
 
     printf("Sending file of %ld bytes...\n", fileSize);
-    // sendFile(client_socket, filename, fileSize);
 
     // Read file in chunks: In a loop, read fixed-size chunks of data from the file.
-    FILE *file = fopen(path1, "rb");
-    printf("%s\n", path1);
+    FILE *file = fopen(path, "rb");
     if (file == NULL)
     {
         perror("Failed to open file!\n");
