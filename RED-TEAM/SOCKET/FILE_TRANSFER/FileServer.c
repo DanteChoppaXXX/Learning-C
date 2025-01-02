@@ -79,7 +79,41 @@ void *clientHandler(void *args)
 
     printf("File opened successfully!\n");
 
+    // Receive data in chunks: In a loop, receive data from the client using recv() with a fixed buffer size.
+    char chunk[1024];
+    ssize_t bytes_written;
+    ssize_t total_bytes_received = 0;
+    while (total_bytes_received < fileSize)
+    {
+        ssize_t bytes_received = recv(client_socket, chunk, sizeof(chunk), 0);
+        if (bytes_received <= 0)
+        {
+            if (bytes_received == 0)
+                printf("Connection closed by peer.\n");
+            else
+                perror("Receive Failed!");
+
+            fclose(file);
+            close(client_socket);
+            return NULL;
+        }
+
+        bytes_written = fwrite(chunk, 1, bytes_received, file);
+        if (bytes_written != bytes_received)
+        {
+            perror("Failed to write to file!");
+            fclose(file);
+            close(client_socket);
+            return NULL;
+        }
+
+        total_bytes_received += bytes_received;
+    }
+    printf("File received successfully!\n");
+
     fclose(file);
+    free(client_args);
+    close(client_socket);
 }
 
 int main()

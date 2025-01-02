@@ -110,9 +110,25 @@ int main()
     printf("Sending file of %ld bytes...\n", fileSize);
     // sendFile(client_socket, filename, fileSize);
 
-    while (1)
+    // Read file in chunks: In a loop, read fixed-size chunks of data from the file.
+    FILE *file = fopen(path, "rb");
+    if (file == NULL)
     {
+        perror("Failed to open file!\n");
+        return 1;
     }
+    char chunk[1024];
+    size_t bytes_read;
+    while ((bytes_read = fread(chunk, 1, sizeof(chunk), file)) > 0)
+    {
+        if (send(client_socket, chunk, bytes_read, 0) < 0)
+        {
+            perror("Sending Failed!\n");
+            break;
+        }
+        printf("Sent %ld bytes\n", bytes_read);
+    }
+    fclose(file);
 
     printf("Closing Program...\n");
 
