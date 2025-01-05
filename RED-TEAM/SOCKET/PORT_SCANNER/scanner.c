@@ -19,6 +19,13 @@ char targetIPOrHostname[100];
 int startPort, endPort;
 int timeout = 3;
 
+enum Protocol_Type
+{
+    TCP = 1,
+    UDP = 2,
+    BOTH = 3 // Work on this later; if(both){ create two separate threads to scan tcp and udp concurrently }
+};
+
 int main()
 {
 
