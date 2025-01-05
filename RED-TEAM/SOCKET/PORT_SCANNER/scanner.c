@@ -13,6 +13,7 @@ This program scans a specific range of ports on a target IP or hostname to deter
 #include <sys/socket.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 // Program Variables.
 char targetIPOrHostname[100];
@@ -28,6 +29,10 @@ enum Protocol_Type
 
 int main()
 {
+    pthread_t thread1, thread2; // Threads for parallel scanning
+    int thread1_result, thread2_result;
+    // Get the target IP or hostname from the user
+    printf("Enter the target IP or hostname: ");
 
     return 0;
 }
