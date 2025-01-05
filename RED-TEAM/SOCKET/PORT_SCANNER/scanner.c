@@ -14,6 +14,11 @@ This program scans a specific range of ports on a target IP or hostname to deter
 #include <errno.h>
 #include <sys/time.h>
 
+// Program Variables.
+char targetIPOrHostname[100];
+int startPort, endPort;
+int timeout = 3;
+
 int main()
 {
 
