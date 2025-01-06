@@ -48,17 +48,21 @@ void *resolveHostname(char *hostname)
     strcpy(targetIPOrHostname, inet_ntoa(*((struct in_addr *)host->h_addr_list[0])));
 }
 
-// Port scanning Function.
-void *scanPort(const char *targetIPOrHostname, const int startPort, const int endPort)
+// Port scanning Function for TCP.
+void *scanPort_TCP(const char *targetIPOrHostname, const int startPort, const int endPort)
 {
+}
 
-    /*Code*/
+// Port scanning Function for UDP.
+void *scanPort_UDP(const char *targetIPOrHostname, const int startPort, const int endPort)
+{
 }
 
 int main()
 {
     pthread_t thread1, thread2; // Threads for parallel scanning
     int thread1_result, thread2_result;
+
     // Get the target IP or hostname from the user
     printf("Enter the target IP or hostname: ");
     scanf("%s", targetIPOrHostname);
