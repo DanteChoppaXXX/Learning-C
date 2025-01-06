@@ -64,6 +64,12 @@ void *scanPort_UDP(const char *targetIPOrHostname, const int startPort, const in
     /* code */
 }
 
+// Port scanning Function for Both TCP and UDP.
+void *scanPort_TCP_UDP(const char *targetIPOrHostname, const int startPort, const int endPort)
+{
+    /* code */
+}
+
 int main()
 {
     pthread_t thread1, thread2; // Threads for parallel scanning
