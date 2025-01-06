@@ -19,7 +19,6 @@ This program scans a specific range of ports on a target IP or hostname to deter
 // Program Variables.
 char targetIPOrHostname[100];
 int startPort, endPort;
-int timeout;
 
 enum Protocol_Type
 {
@@ -51,11 +50,55 @@ void *resolveHostname(char *hostname)
 // Port scanning Function for TCP.
 void *scanPort_TCP(const char *targetIPOrHostname, const int startPort, const int endPort)
 {
+    // Declare a TCP socket variable.
+    int tcp_Socket;
+
     // Loop through the range of ports specified (start to end).
-    for (int i = startPort; i < endPort; i++)
+    for (int i = startPort; i <= endPort; i++)
     {
-        printf("Port: %d is open!\n", i);
+        // For each port create a TCP socket.
+        tcp_Socket = socket(AF_INET, SOCK_STREAM, 0);
+
+        // Check if socket was created successfully.
+        if (tcp_Socket < 0)
+        {
+            perror("Socket creation failed!");
+            exit(1);
+        }
+
+        // printf("TCP socket created! Socket descriptor: %d\n", tcp_Socket);
+
+        // Set timeout for receiving and sending.
+        struct timeval timeout;
+
+        timeout.tv_sec = 3;  // 3 seconds timeout
+        timeout.tv_usec = 0; // 0 microseconds
+        setsockopt(tcp_Socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+        setsockopt(tcp_Socket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+
+        // Define the target server address.
+        struct sockaddr_in target_Addr;
+        target_Addr.sin_family = AF_INET;
+        target_Addr.sin_addr.s_addr = inet_addr(targetIPOrHostname);
+        target_Addr.sin_port = htons(i);
+
+        // Attempt to connect to the target.
+        int result;
+        result = connect(tcp_Socket, (struct sockaddr *)&target_Addr, sizeof(target_Addr));
+        if (result == 0)
+        {
+            printf("Port %d is OPEN!\n", i);
+            close(tcp_Socket);
+        }
+        else
+        {
+            printf("Port %d is CLOSED or FILTERED!\n", i);
+            // printf("%s\n", strerror(errno));
+            close(tcp_Socket);
+        }
     }
+    printf("=====================================\n");
+    printf("Scan Completed! Closing the socket...\n");
 }
 
 // Port scanning Function for UDP.
@@ -114,24 +157,27 @@ int main()
     if (protocolType == 1)
     {
         protocol = "TCP";
+        printf("Scanning ports %d-%d on %s using %s protocol...\n", startPort, endPort, targetIPOrHostname, protocol);
+
+        // Call TCP scan function.
+        scanPort_TCP(targetIPOrHostname, startPort, endPort);
     }
     else if (protocolType == 2)
     {
         protocol = "UDP";
+        printf("Scanning ports %d-%d on %s using %s protocol...\n", startPort, endPort, targetIPOrHostname, protocol);
+
+        // Call TCP scan function.
+        scanPort_UDP(targetIPOrHostname, startPort, endPort);
     }
     else
     {
         protocol = "BOTH";
+        printf("Scanning ports %d-%d on %s using %s protocols...\n", startPort, endPort, targetIPOrHostname, protocol);
+
+        // Call TCP scan function.
+        scanPort_TCP_UDP(targetIPOrHostname, startPort, endPort);
     }
-
-    // Get the timeout value from the user
-    printf("Enter the timeout value (in seconds): ");
-    scanf("%d", &timeout);
-
-    printf("Scanning ports %d-%d on %s using %s protocol, with %d seconds timeout...\n", startPort, endPort, targetIPOrHostname, protocol, timeout);
-
-    // Call TCP scan function.
-    scanPort_TCP(targetIPOrHostname, startPort, endPort);
 
     return 0;
 }

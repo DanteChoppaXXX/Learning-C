@@ -6,5 +6,6 @@
         "stdlib.h": "c",
         "time.h": "c",
         "errno.h": "c"
-    }
+    },
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc"
 }
