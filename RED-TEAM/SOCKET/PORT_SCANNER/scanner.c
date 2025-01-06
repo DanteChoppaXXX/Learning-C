@@ -104,7 +104,42 @@ void *scanPort_TCP(const char *targetIPOrHostname, const int startPort, const in
 // Port scanning Function for UDP.
 void *scanPort_UDP(const char *targetIPOrHostname, const int startPort, const int endPort)
 {
-    /* code */
+
+    // Loop through the range of ports specified (start to end).
+    for (int i = startPort; i <= endPort; i++)
+    {
+        // Create a UDP Socket.
+        int udp_Socket = socket(AF_INET, SOCK_DGRAM, 0);
+
+        // Define the target server address.
+        struct sockaddr_in target_Addr;
+        target_Addr.sin_family = AF_INET;
+        target_Addr.sin_addr.s_addr = inet_addr(targetIPOrHostname);
+        target_Addr.sin_port = htons(i);
+
+        // Send a small data packet to each port.
+        char packet[20] = "@#$&";
+
+        // send(udp_Socket, packet, strlen(packet), 0);
+        sendto(udp_Socket, packet, sizeof(packet), 0, (struct sockaddr *)&target_Addr, sizeof(target_Addr));
+
+        // Wait for Response: ICMP "Port Unreachable" response.
+        char buffer[20];
+        ssize_t response = recvfrom(udp_Socket, buffer, sizeof(buffer), 0, (struct sockaddr *)&target_Addr, (socklen_t *)sizeof(target_Addr));
+
+        if (response < 0)
+        {
+            printf("Port %d is CLOSED!\n%s", i, strerror(errno));
+            close(udp_Socket);
+        }
+        else
+        {
+            printf("Port %d might be OPEN or FILTERED!", i);
+            close(udp_Socket);
+        }
+    }
+    printf("=====================================\n");
+    printf("Scan Completed! Closing the socket...\n");
 }
 
 // Port scanning Function for Both TCP and UDP.
