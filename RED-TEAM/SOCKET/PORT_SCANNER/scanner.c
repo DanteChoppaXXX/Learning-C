@@ -120,8 +120,17 @@ void *scanPort_UDP(const char *targetIPOrHostname, const int startPort, const in
         // Send a small data packet to each port.
         char packet[20] = "@#$&";
 
-        // send(udp_Socket, packet, strlen(packet), 0);
-        sendto(udp_Socket, packet, sizeof(packet), 0, (struct sockaddr *)&target_Addr, sizeof(target_Addr));
+        ssize_t data_Sent = sendto(udp_Socket, packet, sizeof(packet), 0, (struct sockaddr *)&target_Addr, sizeof(target_Addr));
+        if (data_Sent < 0)
+        {
+            perror("Failed to send data!");
+            close(udp_Socket);
+            continue;
+        }
+        else
+        {
+            printf("Sent %zu bytes of data to the target!\n", data_Sent);
+        }
 
         // Wait for Response: ICMP "Port Unreachable" response.
         char buffer[20];
