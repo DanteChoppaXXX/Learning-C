@@ -51,11 +51,17 @@ void *resolveHostname(char *hostname)
 // Port scanning Function for TCP.
 void *scanPort_TCP(const char *targetIPOrHostname, const int startPort, const int endPort)
 {
+    // Loop through the range of ports specified (start to end).
+    for (int i = startPort; i < endPort; i++)
+    {
+        printf("Port: %d is open!\n", i);
+    }
 }
 
 // Port scanning Function for UDP.
 void *scanPort_UDP(const char *targetIPOrHostname, const int startPort, const int endPort)
 {
+    /* code */
 }
 
 int main()
@@ -117,6 +123,9 @@ int main()
     scanf("%d", &timeout);
 
     printf("Scanning ports %d-%d on %s using %s protocol, with %d seconds timeout...\n", startPort, endPort, targetIPOrHostname, protocol, timeout);
+
+    // Call TCP scan function.
+    scanPort_TCP(targetIPOrHostname, startPort, endPort);
 
     return 0;
 }
