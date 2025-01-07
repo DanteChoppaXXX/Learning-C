@@ -56,22 +56,6 @@ A **robust port scanner** is designed to detect open ports on a specified host o
 
 ---
 
-### **UDP Port Scanning Algorithm**
-
-1. **Create UDP Socket**:
-   - Use UDP sockets instead of TCP sockets.
-2. **Send Dummy Data**:
-   - Send a small data packet to each port.
-3. **Wait for Response**:
-   - Use `recvfrom()` to wait for an ICMP "Port Unreachable" response.
-4. **Evaluate Response**:
-   - If no response is received, assume the port might be **open** or **filtered**.
-   - If an error response is received, mark the port as **closed**.
-5. **Close Socket**:
-   - Close the UDP socket for each port.
-
----
-
 ## **Step 5: Display Results**
 
 1. For each scanned port:
