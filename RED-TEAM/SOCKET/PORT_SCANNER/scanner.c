@@ -53,6 +53,11 @@ void *scanPort(const char *targetIPOrHostname, const int startPort, const int en
     // Declare a TCP socket variable.
     int tcp_Socket;
 
+    // Port count variables.
+    int total_Ports_Scanned = 0;
+    int open_Ports = 0;
+    int closed_Ports = 0;
+
     // Loop through the range of ports specified (start to end).
     for (int i = startPort; i <= endPort; i++)
     {
@@ -89,16 +94,24 @@ void *scanPort(const char *targetIPOrHostname, const int startPort, const int en
         {
             printf("Port %d is OPEN!\n", i);
             close(tcp_Socket);
+            total_Ports_Scanned++;
+            open_Ports++;
         }
         else
         {
             printf("Port %d is CLOSED or FILTERED!\n", i);
             // printf("%s\n", strerror(errno));
             close(tcp_Socket);
+            total_Ports_Scanned++;
+            closed_Ports++;
         }
     }
     printf("=====================================\n");
     printf("Scan Completed! Closing the socket...\n");
+    printf("=====================================\n");
+    printf("Open ports: %d\n", open_Ports);
+    printf("Closed ports: %d\n", closed_Ports);
+    printf("Total ports scanned: %d\n", total_Ports_Scanned);
 }
 
 int main(int argc, char *argv[])
