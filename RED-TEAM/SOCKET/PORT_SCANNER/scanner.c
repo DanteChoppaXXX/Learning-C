@@ -168,6 +168,84 @@ int main(int argc, char *argv[])
         // Call TCP scan function.
         scanPort(targetIPOrHostname, port_List, size);
     }
+    else if (strcmp(argv[2], "-s") == 0)
+    {
+        // Check for correct number of arguments.
+        if (argc != 4)
+        {
+            printf("Error: Provide exactly one port number for single port scan\n");
+            return 1;
+        }
+
+        strcpy(targetIPOrHostname, argv[1]);
+        int port = atoi(argv[3]);
+
+        if (port < 0)
+        {
+            printf("Error: Port number must be between 0-65535\n");
+            return 1;
+        }
+
+        if (inet_addr(targetIPOrHostname) == -1)
+        {
+            resolveHostname(targetIPOrHostname);
+        }
+
+        printf("Target IP: %s\n", targetIPOrHostname);
+
+        printf("Scanning port %d on %s using TCP protocol...\n", port, targetIPOrHostname);
+
+        int size = 1;
+
+        // Call TCP scan function.
+        scanPort(targetIPOrHostname, &port, size);
+    }
+    else if (strcmp(argv[2], "-l") == 0)
+    {
+        // Check for correct number of arguments.
+        if (argc < 5)
+        {
+            printf("Error: Provide a list of port numbers (separated with space)\n");
+            return 1;
+        }
+
+        strcpy(targetIPOrHostname, argv[1]);
+
+        int size = sizeof(argv) / sizeof(argv[0]);
+        int port_List[];
+
+        if (startPort > endPort)
+        {
+            printf("Error: Start port must be less than or equal to the end port\n");
+            return 1;
+        }
+
+        if (inet_addr(targetIPOrHostname) == -1)
+        {
+            resolveHostname(targetIPOrHostname);
+        }
+
+        printf("Target IP: %s\n", targetIPOrHostname);
+
+        printf("Scanning ports %d-%d on %s using TCP protocol...\n", startPort, endPort, targetIPOrHostname);
+
+        int size = endPort - startPort + 1;
+        int port_List[size];
+
+        // Populate the port list.
+        for (int i = 0; i < size; i++)
+        {
+            port_List[i] = startPort;
+            startPort++;
+        }
+
+        // Validate whether the provided IP or resolved IP is valid and reachable.
+
+        /*Code*/
+
+        // Call TCP scan function.
+        scanPort(targetIPOrHostname, port_List, size);
+    }
 
     // pthread_t thread1, thread2; // Threads for parallel scanning
     // int thread1_result, thread2_result;
