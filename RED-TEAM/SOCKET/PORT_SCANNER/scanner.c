@@ -20,20 +20,6 @@ This program scans a specific range of ports on a target IP or hostname to deter
 char targetIPOrHostname[100];
 int startPort, endPort;
 
-enum Protocol_Type
-{
-    TCP = 1,
-    UDP = 2,
-    BOTH = 3 // Work on this later; if(both){ create two separate threads to scan tcp and udp concurrently }
-};
-
-enum Port_Status
-{
-    OPEN = 1,
-    CLOSED = 2,
-    FILTERED = 3
-};
-
 // Function to resolve Hostname to IP Address.
 void *resolveHostname(char *hostname)
 {
