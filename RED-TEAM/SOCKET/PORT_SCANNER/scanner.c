@@ -101,14 +101,21 @@ void *scanPort(const char *targetIPOrHostname, const int startPort, const int en
     printf("Scan Completed! Closing the socket...\n");
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-    pthread_t thread1, thread2; // Threads for parallel scanning
-    int thread1_result, thread2_result;
+    // Check for correct number of arguments.
+    if (argc != 4)
+    {
+        printf("Usage: %s <hostname or IP> <startPort> <endPort>\n", argv[0]);
+        return 1;
+    }
+    
+    strcpy(targetIPOrHostname, argv[1]);
+    startPort = atoi(argv[2]);
+    endPort = atoi(argv[3]);
 
-    // Get the target IP or hostname from the user
-    printf("Enter the target IP or hostname: ");
-    scanf("%s", targetIPOrHostname);
+    // pthread_t thread1, thread2; // Threads for parallel scanning
+    // int thread1_result, thread2_result;
 
     // Check if the input is a hostname and resolve it to an IP address
     if (inet_addr(targetIPOrHostname) == -1)
@@ -121,12 +128,6 @@ int main()
     // Validate whether the provided IP or resolved IP is valid and reachable.
 
     /*Code*/
-
-    // Get the port range from the user
-    printf("Enter the start port: ");
-    scanf("%d", &startPort);
-    printf("Enter the end port: ");
-    scanf("%d", &endPort);
 
     printf("Scanning ports %d-%d on %s using TCP protocol...\n", startPort, endPort, targetIPOrHostname);
 
