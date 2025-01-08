@@ -186,6 +186,7 @@ int main(int argc, char *argv[])
             return 1;
         }
 
+        // Check if the input is a hostname and resolve it to an IP address
         if (inet_addr(targetIPOrHostname) == -1)
         {
             resolveHostname(targetIPOrHostname);
@@ -211,15 +212,11 @@ int main(int argc, char *argv[])
 
         strcpy(targetIPOrHostname, argv[1]);
 
-        int size = sizeof(argv) / sizeof(argv[0]);
-        int port_List[];
+        int size = argc - 3;
+        printf("%d\n", size);
+        int port_List[size];
 
-        if (startPort > endPort)
-        {
-            printf("Error: Start port must be less than or equal to the end port\n");
-            return 1;
-        }
-
+        // Check if the input is a hostname and resolve it to an IP address
         if (inet_addr(targetIPOrHostname) == -1)
         {
             resolveHostname(targetIPOrHostname);
@@ -227,16 +224,12 @@ int main(int argc, char *argv[])
 
         printf("Target IP: %s\n", targetIPOrHostname);
 
-        printf("Scanning ports %d-%d on %s using TCP protocol...\n", startPort, endPort, targetIPOrHostname);
-
-        int size = endPort - startPort + 1;
-        int port_List[size];
+        printf("Scanning lists of ports on %s using TCP protocol...\n", targetIPOrHostname);
 
         // Populate the port list.
         for (int i = 0; i < size; i++)
         {
-            port_List[i] = startPort;
-            startPort++;
+            port_List[i] = atoi(argv[3 + i]);
         }
 
         // Validate whether the provided IP or resolved IP is valid and reachable.
