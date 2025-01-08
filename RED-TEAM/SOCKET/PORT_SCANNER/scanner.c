@@ -112,6 +112,7 @@ void *scanPort(const char *targetIPOrHostname, int *port_List, int size)
     printf("Open ports: %d\n", open_Ports);
     printf("Closed ports: %d\n", closed_Ports);
     printf("Total ports scanned: %d\n", total_Ports_Scanned);
+    printf("=====================================\n");
 }
 
 int main(int argc, char *argv[])
@@ -161,10 +162,6 @@ int main(int argc, char *argv[])
             startPort++;
         }
 
-        // Validate whether the provided IP or resolved IP is valid and reachable.
-
-        /*Code*/
-
         // Call TCP scan function.
         scanPort(targetIPOrHostname, port_List, size);
     }
@@ -213,7 +210,6 @@ int main(int argc, char *argv[])
         strcpy(targetIPOrHostname, argv[1]);
 
         int size = argc - 3;
-        printf("%d\n", size);
         int port_List[size];
 
         // Check if the input is a hostname and resolve it to an IP address
@@ -224,17 +220,13 @@ int main(int argc, char *argv[])
 
         printf("Target IP: %s\n", targetIPOrHostname);
 
-        printf("Scanning lists of ports on %s using TCP protocol...\n", targetIPOrHostname);
+        printf("Scanning list of ports on %s using TCP protocol...\n", targetIPOrHostname);
 
         // Populate the port list.
         for (int i = 0; i < size; i++)
         {
             port_List[i] = atoi(argv[3 + i]);
         }
-
-        // Validate whether the provided IP or resolved IP is valid and reachable.
-
-        /*Code*/
 
         // Call TCP scan function.
         scanPort(targetIPOrHostname, port_List, size);
