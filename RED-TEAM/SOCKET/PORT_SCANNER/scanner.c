@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
         printf("Usage: %s <hostname or IP> <startPort> <endPort>\n", argv[0]);
         return 1;
     }
-    
+
     strcpy(targetIPOrHostname, argv[1]);
     startPort = atoi(argv[2]);
     endPort = atoi(argv[3]);
