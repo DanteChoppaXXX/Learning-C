@@ -48,7 +48,7 @@ void *resolveHostname(char *hostname)
 }
 
 // Port scanning Function for TCP.
-void *scanPort(const char *targetIPOrHostname, const int startPort, const int endPort)
+void *scanPort(const char *targetIPOrHostname, int *port_List, int size)
 {
     // Declare a TCP socket variable.
     int tcp_Socket;
@@ -59,7 +59,7 @@ void *scanPort(const char *targetIPOrHostname, const int startPort, const int en
     int closed_Ports = 0;
 
     // Loop through the range of ports specified (start to end).
-    for (int i = startPort; i <= endPort; i++)
+    for (int i = 0; i < size; i++)
     {
         // For each port create a TCP socket.
         tcp_Socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -85,21 +85,21 @@ void *scanPort(const char *targetIPOrHostname, const int startPort, const int en
         struct sockaddr_in target_Addr;
         target_Addr.sin_family = AF_INET;
         target_Addr.sin_addr.s_addr = inet_addr(targetIPOrHostname);
-        target_Addr.sin_port = htons(i);
+        target_Addr.sin_port = htons(port_List[i]);
 
         // Attempt to connect to the target.
         int result;
         result = connect(tcp_Socket, (struct sockaddr *)&target_Addr, sizeof(target_Addr));
         if (result == 0)
         {
-            printf("Port %d is OPEN!\n", i);
+            printf("Port %d is OPEN!\n", port_List[i]);
             close(tcp_Socket);
             total_Ports_Scanned++;
             open_Ports++;
         }
         else
         {
-            printf("Port %d is CLOSED or FILTERED!\n", i);
+            printf("Port %d is CLOSED or FILTERED!\n", port_List[i]);
             // printf("%s\n", strerror(errno));
             close(tcp_Socket);
             total_Ports_Scanned++;
@@ -126,15 +126,15 @@ int main(int argc, char *argv[])
     if (strcmp(argv[2], "-r") == 0)
     {
         // Check for correct number of arguments.
-        if (argc != 4)
+        if (argc != 5)
         {
             printf("Error: Provide exactly two numbers for the range\n");
             return 1;
         }
 
         strcpy(targetIPOrHostname, argv[1]);
-        startPort = atoi(argv[2]);
-        endPort = atoi(argv[3]);
+        startPort = atoi(argv[3]);
+        endPort = atoi(argv[4]);
 
         if (startPort > endPort)
         {
@@ -142,31 +142,37 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        int size = endPort - startPort;
+        if (inet_addr(targetIPOrHostname) == -1)
+        {
+            resolveHostname(targetIPOrHostname);
+        }
+
+        printf("Target IP: %s\n", targetIPOrHostname);
+
+        printf("Scanning ports %d-%d on %s using TCP protocol...\n", startPort, endPort, targetIPOrHostname);
+
+        int size = endPort - startPort + 1;
         int port_List[size];
 
         // Populate the port list.
+        for (int i = 0; i < size; i++)
+        {
+            port_List[i] = startPort;
+            startPort++;
         }
+
+        // Validate whether the provided IP or resolved IP is valid and reachable.
+
+        /*Code*/
+
+        // Call TCP scan function.
+        scanPort(targetIPOrHostname, port_List, size);
+    }
 
     // pthread_t thread1, thread2; // Threads for parallel scanning
     // int thread1_result, thread2_result;
 
     // Check if the input is a hostname and resolve it to an IP address
-    if (inet_addr(targetIPOrHostname) == -1)
-    {
-        resolveHostname(targetIPOrHostname);
-    }
-
-    printf("Target IP: %s\n", targetIPOrHostname);
-
-    // Validate whether the provided IP or resolved IP is valid and reachable.
-
-    /*Code*/
-
-    printf("Scanning ports %d-%d on %s using TCP protocol...\n", startPort, endPort, targetIPOrHostname);
-
-    // Call TCP scan function.
-    scanPort(targetIPOrHostname, startPort, endPort);
 
     return 0;
 }
