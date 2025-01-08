@@ -116,16 +116,37 @@ void *scanPort(const char *targetIPOrHostname, const int startPort, const int en
 
 int main(int argc, char *argv[])
 {
-    // Check for correct number of arguments.
-    if (argc != 4)
+    // Check for sufficient number of arguments.
+    if (argc < 3)
     {
-        printf("Usage: %s <hostname or IP> <startPort> <endPort>\n", argv[0]);
+        printf("Usage: %s <hostname or IP> <Option> \nOptions: -s <port> (for single port)\n\t -r <startPort> <endPort> (for range of ports)\n\t -l <port> <port> <port>... (for list of ports)\n", argv[0]);
         return 1;
     }
 
-    strcpy(targetIPOrHostname, argv[1]);
-    startPort = atoi(argv[2]);
-    endPort = atoi(argv[3]);
+    if (strcmp(argv[2], "-r") == 0)
+    {
+        // Check for correct number of arguments.
+        if (argc != 4)
+        {
+            printf("Error: Provide exactly two numbers for the range\n");
+            return 1;
+        }
+
+        strcpy(targetIPOrHostname, argv[1]);
+        startPort = atoi(argv[2]);
+        endPort = atoi(argv[3]);
+
+        if (startPort > endPort)
+        {
+            printf("Error: Start port must be less than or equal to the end port\n");
+            return 1;
+        }
+
+        int size = endPort - startPort;
+        int port_List[size];
+
+        // Populate the port list.
+        }
 
     // pthread_t thread1, thread2; // Threads for parallel scanning
     // int thread1_result, thread2_result;
