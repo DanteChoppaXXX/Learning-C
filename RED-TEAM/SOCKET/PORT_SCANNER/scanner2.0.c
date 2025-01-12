@@ -5,26 +5,18 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/socket.h>
-#include <errno.h>
 #include <sys/time.h>
+#include <errno.h>
 #include <pthread.h>
 
 // Program Variables.
 char targetIPOrHostname[100];
-int open_Ports = 0;
-int closed_Ports = 0;
-pthread_mutex_t printMutex, statsMutex;
-
-typedef struct
-{
-    const char *targetIPOrHostname;
-    int *port_List;
-    int start;
-    int end;
-} ThreadData;
+int startPort, endPort, threadCount = 4, timeout = 3;
+int openPorts = 0, closedPorts = 0, totalPorts = 0;
+pthread_mutex_t lock;
 
 // Function to resolve Hostname to IP Address.
-void *resolveHostname(char *hostname)
+void resolveHostname(char *hostname)
 {
     struct hostent *host;
     host = gethostbyname(hostname);
@@ -36,82 +28,104 @@ void *resolveHostname(char *hostname)
     strcpy(targetIPOrHostname, inet_ntoa(*((struct in_addr *)host->h_addr_list[0])));
 }
 
-// Port scanning Function for TCP used by threads.
-void *threadScan(void *arg)
+// Service detection function.
+const char *detectService(int port)
 {
-    ThreadData *data = (ThreadData *)arg;
-
-    for (int i = data->start; i <= data->end; i++)
+    switch (port)
     {
-        int port = data->port_List[i];
-        int tcp_Socket = socket(AF_INET, SOCK_STREAM, 0);
+    case 22:
+        return "SSH";
+    case 80:
+        return "HTTP";
+    case 443:
+        return "HTTPS";
+    case 21:
+        return "FTP";
+    case 25:
+        return "SMTP";
+    default:
+        return "Unknown";
+    }
+}
 
-        if (tcp_Socket < 0)
+// Port scanning function for TCP.
+void *scanPort(void *arg)
+{
+    int *portList = (int *)arg;
+    for (int i = 0; portList[i] != -1; i++)
+    {
+        int port = portList[i];
+
+        // Create TCP socket.
+        int tcpSocket = socket(AF_INET, SOCK_STREAM, 0);
+        if (tcpSocket < 0)
         {
-            perror("Socket creation failed!");
-            continue; // Skip to the next port
+            perror("Socket creation failed");
+            continue;
         }
 
-        // Set timeout for receiving and sending.
-        struct timeval timeout;
-        timeout.tv_sec = 3;
-        timeout.tv_usec = 0;
-        setsockopt(tcp_Socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-        setsockopt(tcp_Socket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+        // Set timeout for the socket.
+        struct timeval timeoutVal;
+        timeoutVal.tv_sec = timeout;
+        timeoutVal.tv_usec = 0;
+        setsockopt(tcpSocket, SOL_SOCKET, SO_RCVTIMEO, &timeoutVal, sizeof(timeoutVal));
+        setsockopt(tcpSocket, SOL_SOCKET, SO_SNDTIMEO, &timeoutVal, sizeof(timeoutVal));
 
-        struct sockaddr_in target_Addr;
-        target_Addr.sin_family = AF_INET;
-        target_Addr.sin_addr.s_addr = inet_addr(data->targetIPOrHostname);
-        target_Addr.sin_port = htons(port);
+        // Define target address.
+        struct sockaddr_in targetAddr;
+        targetAddr.sin_family = AF_INET;
+        targetAddr.sin_addr.s_addr = inet_addr(targetIPOrHostname);
+        targetAddr.sin_port = htons(port);
 
-        int result = connect(tcp_Socket, (struct sockaddr *)&target_Addr, sizeof(target_Addr));
-        pthread_mutex_lock(&printMutex);
-        if (result == 0)
+        // Attempt to connect to the port.
+        if (connect(tcpSocket, (struct sockaddr *)&targetAddr, sizeof(targetAddr)) == 0)
         {
-            printf("Port %d is OPEN!\n", port);
-            pthread_mutex_lock(&statsMutex);
-            open_Ports++;
-            pthread_mutex_unlock(&statsMutex);
+            pthread_mutex_lock(&lock);
+            printf("Port %d is OPEN (Service: %s)\n", port, detectService(port));
+            openPorts++;
+            pthread_mutex_unlock(&lock);
         }
         else
         {
-            printf("Port %d is CLOSED or FILTERED!\n", port);
-            pthread_mutex_lock(&statsMutex);
-            closed_Ports++;
-            pthread_mutex_unlock(&statsMutex);
+            pthread_mutex_lock(&lock);
+            printf("Port %d is CLOSED or FILTERED\n", port);
+            closedPorts++;
+            pthread_mutex_unlock(&lock);
         }
-        pthread_mutex_unlock(&printMutex);
 
-        close(tcp_Socket);
+        close(tcpSocket);
+
+        pthread_mutex_lock(&lock);
+        totalPorts++;
+        pthread_mutex_unlock(&lock);
     }
-
-    pthread_exit(NULL);
+    return NULL;
 }
 
-void performScan(const char *targetIPOrHostname, int *port_List, int size, int numThreads)
+// Divide ports among threads.
+void dividePortsAndScan(int *portList, int size)
 {
-    pthread_t threads[numThreads];
-    ThreadData threadData[numThreads];
+    pthread_t threads[threadCount];
+    int portsPerThread = size / threadCount;
+    int remainder = size % threadCount;
 
-    int portsPerThread = size / numThreads;
-    int remainingPorts = size % numThreads;
-
-    for (int i = 0; i < numThreads; i++)
+    for (int i = 0; i < threadCount; i++)
     {
-        threadData[i].targetIPOrHostname = targetIPOrHostname;
-        threadData[i].port_List = port_List;
-        threadData[i].start = i * portsPerThread;
-        threadData[i].end = (i + 1) * portsPerThread - 1;
-
-        if (i == numThreads - 1)
+        int chunkSize = portsPerThread + (i < remainder ? 1 : 0);
+        int *chunk = malloc((chunkSize + 1) * sizeof(int));
+        for (int j = 0; j < chunkSize; j++)
         {
-            threadData[i].end += remainingPorts;
+            chunk[j] = portList[i * portsPerThread + j + (i < remainder ? i : remainder)];
         }
+        chunk[chunkSize] = -1; // Sentinel value to mark end of chunk.
 
-        pthread_create(&threads[i], NULL, threadScan, (void *)&threadData[i]);
+        if (pthread_create(&threads[i], NULL, scanPort, (void *)chunk) != 0)
+        {
+            perror("Thread creation failed");
+        }
     }
 
-    for (int i = 0; i < numThreads; i++)
+    for (int i = 0; i < threadCount; i++)
     {
         pthread_join(threads[i], NULL);
     }
@@ -121,28 +135,40 @@ int main(int argc, char *argv[])
 {
     if (argc < 3)
     {
-        printf("Usage: %s <hostname or IP> <Option> \nOptions: -s <port> (for single port)\n\t -r <startPort> <endPort> (for range of ports)\n\t -l <port> <port> <port>... (for list of ports)\n", argv[0]);
+        printf("Usage: %s <hostname or IP> <Option>\nOptions: -s <port>\n\t-r <startPort> <endPort>\n\t-l <port1> <port2> ...\n\t--timeout <seconds>\n\t--threads <number>\n", argv[0]);
         return 1;
     }
 
-    pthread_mutex_init(&printMutex, NULL);
-    pthread_mutex_init(&statsMutex, NULL);
+    // Parse additional arguments.
+    for (int i = 3; i < argc; i++)
+    {
+        if (strcmp(argv[i], "--timeout") == 0 && i + 1 < argc)
+        {
+            timeout = atoi(argv[++i]);
+        }
+        else if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc)
+        {
+            threadCount = atoi(argv[++i]);
+        }
+    }
+
+    pthread_mutex_init(&lock, NULL);
 
     if (strcmp(argv[2], "-r") == 0)
     {
-        if (argc != 5)
+        if (argc < 5)
         {
-            printf("Error: Provide exactly two numbers for the range\n");
+            printf("Error: Provide start and end ports\n");
             return 1;
         }
 
         strcpy(targetIPOrHostname, argv[1]);
-        int startPort = atoi(argv[3]);
-        int endPort = atoi(argv[4]);
+        startPort = atoi(argv[3]);
+        endPort = atoi(argv[4]);
 
         if (startPort > endPort)
         {
-            printf("Error: Start port must be less than or equal to the end port\n");
+            printf("Error: Start port must be <= end port\n");
             return 1;
         }
 
@@ -152,23 +178,23 @@ int main(int argc, char *argv[])
         }
 
         printf("Target IP: %s\n", targetIPOrHostname);
-        printf("Scanning ports %d-%d on %s using TCP protocol...\n", startPort, endPort, targetIPOrHostname);
+        printf("Scanning ports %d-%d using %d threads and timeout %d seconds\n", startPort, endPort, threadCount, timeout);
 
         int size = endPort - startPort + 1;
-        int port_List[size];
+        int portList[size];
 
         for (int i = 0; i < size; i++)
         {
-            port_List[i] = startPort++;
+            portList[i] = startPort + i;
         }
 
-        performScan(targetIPOrHostname, port_List, size, 4);
+        dividePortsAndScan(portList, size);
     }
     else if (strcmp(argv[2], "-s") == 0)
     {
-        if (argc != 4)
+        if (argc < 4)
         {
-            printf("Error: Provide exactly one port number for single port scan\n");
+            printf("Error: Provide a port\n");
             return 1;
         }
 
@@ -181,22 +207,28 @@ int main(int argc, char *argv[])
         }
 
         printf("Target IP: %s\n", targetIPOrHostname);
-        printf("Scanning port %d on %s using TCP protocol...\n", port, targetIPOrHostname);
+        printf("Scanning port %d using timeout %d seconds\n", port, timeout);
 
-        int port_List[1] = {port};
-        performScan(targetIPOrHostname, port_List, 1, 1);
+        int portList[2] = {port, -1};
+        dividePortsAndScan(portList, 1);
     }
     else if (strcmp(argv[2], "-l") == 0)
     {
-        if (argc < 5)
+        if (argc < 4)
         {
-            printf("Error: Provide a list of port numbers (separated with space)\n");
+            printf("Error: Provide a list of ports\n");
             return 1;
         }
 
         strcpy(targetIPOrHostname, argv[1]);
+
         int size = argc - 3;
-        int port_List[size];
+        int portList[size];
+
+        for (int i = 0; i < size; i++)
+        {
+            portList[i] = atoi(argv[i + 3]);
+        }
 
         if (inet_addr(targetIPOrHostname) == -1)
         {
@@ -204,25 +236,16 @@ int main(int argc, char *argv[])
         }
 
         printf("Target IP: %s\n", targetIPOrHostname);
-        printf("Scanning list of ports on %s using TCP protocol...\n", targetIPOrHostname);
+        printf("Scanning %d ports using %d threads and timeout %d seconds\n", size, threadCount, timeout);
 
-        for (int i = 0; i < size; i++)
-        {
-            port_List[i] = atoi(argv[3 + i]);
-        }
-
-        performScan(targetIPOrHostname, port_List, size, 4);
+        dividePortsAndScan(portList, size);
     }
 
-    printf("=====================================\n");
-    printf("Scan Summary:\n");
-    printf("Open ports: %d\n", open_Ports);
-    printf("Closed ports: %d\n", closed_Ports);
-    printf("Total ports scanned: %d\n", open_Ports + closed_Ports);
-    printf("=====================================\n");
+    printf("\nSummary:\n");
+    printf("Open ports: %d\n", openPorts);
+    printf("Closed ports: %d\n", closedPorts);
+    printf("Total ports scanned: %d\n", totalPorts);
 
-    pthread_mutex_destroy(&printMutex);
-    pthread_mutex_destroy(&statsMutex);
-
+    pthread_mutex_destroy(&lock);
     return 0;
 }
