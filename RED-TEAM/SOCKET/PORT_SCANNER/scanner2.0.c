@@ -48,10 +48,22 @@ const char *detectService(int port)
     }
 }
 
+// Save result to file.
+void *saveResult(const char *buffer){
+    FILE *file;
+    char filename[100];
+    sprintf(filename, ".%s.txt", targetIPOrHostname);
+    file = fopen(filename, "a");
+    fprintf(file, buffer);
+    fclose(file);
+}
+
 // Port scanning function for TCP.
 void *scanPort(void *arg)
 {
     int *portList = (int *)arg;
+    char *buffer = malloc(1024);
+
     for (int i = 0; portList[i] != -1; i++)
     {
         int port = portList[i];
@@ -82,6 +94,8 @@ void *scanPort(void *arg)
         {
             pthread_mutex_lock(&lock);
             printf("Port %d is OPEN (Service: %s)\n", port, detectService(port));
+            sprintf(buffer, "Port %d is OPEN (Service: %s)\n", port, detectService(port));
+            saveResult(buffer);
             openPorts++;
             pthread_mutex_unlock(&lock);
         }
@@ -89,6 +103,8 @@ void *scanPort(void *arg)
         {
             pthread_mutex_lock(&lock);
             printf("Port %d is CLOSED or FILTERED\n", port);
+            sprintf(buffer, "Port %d is CLOSED or FILTERED\n", port);
+            saveResult(buffer);
             closedPorts++;
             pthread_mutex_unlock(&lock);
         }
@@ -99,6 +115,7 @@ void *scanPort(void *arg)
         totalPorts++;
         pthread_mutex_unlock(&lock);
     }
+    free(buffer);
     return NULL;
 }
 
@@ -113,6 +130,12 @@ void dividePortsAndScan(int *portList, int size)
     {
         int chunkSize = portsPerThread + (i < remainder ? 1 : 0);
         int *chunk = malloc((chunkSize + 1) * sizeof(int));
+        if (chunk == NULL)
+        {
+            perror("Memory allocation failed");
+            exit(1);
+        }
+        
         for (int j = 0; j < chunkSize; j++)
         {
             chunk[j] = portList[i * portsPerThread + j + (i < remainder ? i : remainder)];
