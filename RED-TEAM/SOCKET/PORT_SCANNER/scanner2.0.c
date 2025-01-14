@@ -115,6 +115,7 @@ void *scanPort(void *arg)
         totalPorts++;
         pthread_mutex_unlock(&lock);
     }
+
     free(buffer);
     return NULL;
 }
@@ -269,6 +270,9 @@ int main(int argc, char *argv[])
     printf("Closed ports: %d\n", closedPorts);
     printf("Total ports scanned: %d\n", totalPorts);
 
+    char *buffer = malloc(1024);
+    sprintf(buffer, "================================\nScan Completed!\nOpen ports: %d\nClosed ports: %d\nTotal ports scanned: %d\n================================\n================================\n", openPorts, closedPorts, totalPorts);
+    saveResult(buffer);
     pthread_mutex_destroy(&lock);
     return 0;
 }
