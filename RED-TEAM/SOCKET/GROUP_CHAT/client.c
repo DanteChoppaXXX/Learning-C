@@ -21,6 +21,11 @@ typedef struct
     char *username;
 } ClientArgs;
 
+void print_prompt(const char* username) {
+    printf("%s #=> ", username);  // Print the label "User1: "
+    fflush(stdout);  // Make sure the prompt is displayed before waiting for input
+}
+
 // Function for sending messages
 void *send_messages(void *args)
 {
@@ -31,12 +36,12 @@ void *send_messages(void *args)
 
     while (is_connected)
     {
-        printf("%s #=> ", username);
+        print_prompt(username);
         fgets(client_message, sizeof(client_message) - 1, stdin);
         client_message[strcspn(client_message, "\n")] = '\0'; // Remove newline
 
         char buffer[2000];
-        snprintf(buffer, sizeof(buffer), "\n%s #=> %s\n", username, client_message);
+        snprintf(buffer, sizeof(buffer), "%s #=> %s\n", username, client_message);
 
         pthread_mutex_lock(&lock);
         if (send(client_socket, buffer, strlen(buffer), 0) < 0)
@@ -63,7 +68,11 @@ void *receive_messages(void *args)
     while ((bytes_received = recv(client_socket, buffer, sizeof(buffer) - 1, 0)) > 0)
     {
         buffer[bytes_received] = '\0';
-        printf("%s\n", buffer);
+        // printf("\033[1K");  // Clear the entire current line
+        // printf("\033[1A");  // Move the cursor up by one line (clear prompt line)
+        printf("\r%s", buffer);
+        fflush(stdout);
+        print_prompt(client_args->username);
     }
 
     if (bytes_received == 0)
