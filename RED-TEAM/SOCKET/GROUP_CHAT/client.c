@@ -36,7 +36,7 @@ void *send_messages(void *args)
         client_message[strcspn(client_message, "\n")] = '\0'; // Remove newline
 
         char buffer[2000];
-        snprintf(buffer, sizeof(buffer), "%s #=> %s\n", username, client_message);
+        snprintf(buffer, sizeof(buffer), "\n%s #=> %s\n", username, client_message);
 
         pthread_mutex_lock(&lock);
         if (send(client_socket, buffer, strlen(buffer), 0) < 0)
