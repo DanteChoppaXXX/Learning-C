@@ -1,3 +1,5 @@
+// INCOMPLETE PROGRAM DUE TO TERMINAL-BASED APPLICATION LIMITATIONS.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
