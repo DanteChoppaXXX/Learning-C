@@ -301,6 +301,13 @@ int main()
     else{
         server_res[bytes_received] = '\0';
         printf("%s\n", server_res);
+        if (strcmp(server_res, "Authentication Failed!\n") == 0)
+        {
+            printf("Disconnected!\n");
+            close(client_socket);
+            exit(1);
+        }
+        
     }
     
     
