@@ -12,9 +12,40 @@
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 6302
 #define MAX_CLIENTS 5
+#define USER_SIZE 5
+#define MAX_SIZE 20
 
 int client_sockets[MAX_CLIENTS];                           // Array to store client sockets.
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for thread safety.
+
+// Struct to store user credentials for authentication.
+typedef struct
+{
+    char username[MAX_SIZE];
+    char password[MAX_SIZE];
+} User;
+
+// Create a struct array to store user data.
+User users[USER_SIZE] = {
+        {"Assassin", "assassin419"},
+        {"Hacker", "h4cker"}
+};
+
+// Login function for authentication.
+int login(const char *username, const char *password)
+{
+    
+    // Check for correct username and password.
+    for (int i = 0; i < USER_SIZE; i++)
+    {
+        if (strcmp(username, users[i].username) == 0 && strcmp(password, users[i].password) == 0)
+        {
+            return i;
+        }       
+    }
+    return -1;
+
+}
 
 // Struct to store client handler arguments.
 typedef struct
@@ -241,6 +272,64 @@ void *clientHandler(void *args)
 {
     ClientArgs *client_args = (ClientArgs *)args;
     int client_socket = client_args->client_socket;
+
+    char username[MAX_SIZE];
+    char password[MAX_SIZE];
+
+     // Create struct instance.
+    User *user = malloc(sizeof(User));
+    if (user == NULL)
+        {
+            perror("Memory allocation failed");
+        }
+
+    char buffer[sizeof(User)];
+
+    ssize_t bytesReceived = recv(client_socket, buffer, sizeof(User), 0);
+    if (bytesReceived <= 0) // Handle errors or closed connections
+    {
+        if (bytesReceived == 0)
+            printf("Connection closed by peer.\n");
+        else
+            perror("Receive Failed!");
+
+        free(user);
+        close(client_socket);
+        return NULL;
+    }
+
+
+    // Receive the user credential struct from the client.
+    
+    memcpy(user, buffer, sizeof(User)); // Copy the struct into the buffer
+
+    // Store username and password in the struct
+    strncpy(username, user->username, sizeof(username)); 
+    strncpy(password, user->password, sizeof(password));
+
+    // Call the login function.
+    int auth = login(username, password);
+    char *login_message = malloc(1024);
+
+    if (auth != -1)
+    {
+        login_message = "Authentication Successful!\n";
+        if (send(client_socket, login_message, strlen(login_message), 0) < 0)
+        {
+            perror("Sending Failed!");
+            exit(1);
+        }
+    }
+    else{
+        login_message = "Authentication Failed!\n";
+        if (send(client_socket, login_message, strlen(login_message), 0) < 0)
+        {
+            perror("Sending Failed!");
+            exit(1);
+        }
+        close(client_socket);
+    }
+    
 
     int choice;
     // Receive choice from client.

@@ -12,6 +12,7 @@
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 6302
+#define MAX_SIZE 20
 
 char path[255];
 
@@ -23,6 +24,13 @@ typedef struct
     long fileSize;
 
 } ClientArgs;
+
+// Struct to store user credentials for authentication.
+typedef struct
+{
+    char username[MAX_SIZE];
+    char password[MAX_SIZE];
+} User;
 
 // Send File Function.
 void *sendFile(const int client_socket)
@@ -250,6 +258,52 @@ int main()
     }
     printf("Connection Successful!\n");
     printf("======================\n");
+
+    // Prompt user for username and password.
+    char username[MAX_SIZE];
+    char password[MAX_SIZE];
+
+    printf("Enter username: ");
+    scanf("%s", &username);
+    printf("\nEnter password: ");
+    scanf("%s", &password);
+
+    // Create struct instance.
+    User *user = malloc(sizeof(User));
+    if (user == NULL)
+        {
+            perror("Memory allocation failed");
+        }
+
+    // Store username and password in the struct
+    strncpy(user->username, username, sizeof(user->username)); 
+    strncpy(user->password, password, sizeof(user->password));
+
+    // Send the user credential struct to the server.
+    char buffer[sizeof(User)];  // Buffer to store struct
+    
+    memcpy(buffer, user, sizeof(User)); // Copy the struct into the buffer
+
+    if (send(client_socket, buffer, sizeof(User), 0) < 0)
+    {
+        perror("Sending Failed!");
+        exit(1);
+    }
+
+    // Receive response from server.
+    char server_res[1024];
+    int bytes_received = recv(client_socket, server_res, sizeof(server_res), 0);
+    if (bytes_received < 0)
+    {
+        perror("Receiving Failed!");
+        exit(1);
+    }
+    else{
+        server_res[bytes_received] = '\0';
+        printf("%s\n", server_res);
+    }
+    
+    
 
     // Ask the user if they want to send or receive a file.
     int choice;
