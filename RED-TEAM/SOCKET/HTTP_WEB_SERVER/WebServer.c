@@ -15,12 +15,37 @@
 #define THREAD_POOL_SIZE 10
 #define MAX_CLIENTS 10
 
-typedef struct{
+typedef struct
+{
     int client_socket;
     char client_request;
 } ClientArgs;
 
-void *client_handler(void *args){
+// Http request parser function.
+void *http_request_parser(const char *request, int client_socket)
+{
+    // Extract the Method, Path and Http Version.
+    char method[10], path[50], http_version[10]; 
+    sscanf(request, "%s %s %s", method, path, http_version);
+    printf("Method: %s\nPath: %s\nHttp_Version: %s\n", method, path, http_version);
+    printf("\nServing Web Content To The Client...\n");
+
+    // Display content based on client request.
+    if (strcmp(path, "/index.html") == 0 || strcmp(path, "/") == 0)
+    {
+        FILE *file = fopen("./static/index.html", "rb");
+        char file_buffer[1024];
+        fread(file_buffer, sizeof(file_buffer), 1, file);
+        send(client_socket, file_buffer, sizeof(file_buffer), 0);
+
+        printf("Web Content Served Successfully!\n%s\n", file_buffer);
+    }
+    
+
+}
+
+void *client_handler(void *args)
+{
     ClientArgs *client_args = (ClientArgs *) args;
     int client_socket = client_args->client_socket;
     char buffer[HTTP_BUFFER_SIZE];
@@ -33,13 +58,17 @@ void *client_handler(void *args){
     }
     else{
         buffer[bytesReceived] = '\0';
+        // char *chr_index = strchr(buffer, '\n');
+        // buffer[*chr_index] = '\0';
         printf("%s\n", buffer);
+        http_request_parser(buffer, client_socket);
     }
     
     close(client_socket);
 }
 
-int main(){
+int main()
+{
 
     pthread_t clientThread;
 
