@@ -8,30 +8,71 @@
 #include <sys/time.h>
 #include <pthread.h>
 #include <sys/stat.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
-#define SERVER_PORT 8080
+
+#define SERVER_PORT 443
 #define DOCUMENT_ROOT "./static/"
 #define HTTP_BUFFER_SIZE 1024
 #define THREAD_POOL_SIZE 10
 #define MAX_CLIENTS 10
 
+// Initialize OpenSSL.
+void init_openssl() {
+    SSL_load_error_strings();
+    OpenSSL_add_ssl_algorithms();
+}
+
+// Cleanup OpenSSL.
+void cleanup_openssl() {
+    EVP_cleanup();
+}
+
+
+// Create an SSL context.
+SSL_CTX *create_ssl_context() {
+    SSL_CTX *ctx = SSL_CTX_new(TLS_server_method());
+    if (!ctx) {
+        perror("Unable to create SSL context");
+        ERR_print_errors_fp(stderr);
+        exit(EXIT_FAILURE);
+    }
+
+    // Load certificate and private key
+    if (SSL_CTX_use_certificate_file(ctx, "./server.crt", SSL_FILETYPE_PEM) <= 0 ||
+        SSL_CTX_use_PrivateKey_file(ctx, "./server.key", SSL_FILETYPE_PEM) <= 0) {
+        ERR_print_errors_fp(stderr);
+        exit(EXIT_FAILURE);
+    }
+
+    return ctx;
+}
+
 typedef struct
 {
-    int client_socket;
-    char client_request;
+    SSL *ssl;
+    SSL_CTX *ctx;
 } ClientArgs;
 
 void *client_handler(void *args)
 {
     ClientArgs *client_args = (ClientArgs *) args;
-    int client_socket = client_args->client_socket;
+    SSL *ssl = client_args->ssl;
+
+    if (SSL_accept(ssl) <= 0) {
+        ERR_print_errors_fp(stderr);
+        SSL_free(ssl);
+        return NULL;
+    }
+
     char buffer[HTTP_BUFFER_SIZE];
 
-    ssize_t bytesReceived = recv(client_socket, buffer, sizeof(buffer), 0);
+    ssize_t bytesReceived = SSL_read(ssl, buffer, sizeof(buffer));
     if (bytesReceived < 0)
     {
-        perror("Failed To Receive Request!");
-        close(client_socket);
+        ERR_print_errors_fp(stderr);
+        SSL_free(ssl);
     }
     else
     {
@@ -54,7 +95,7 @@ void *client_handler(void *args)
         if (file == NULL)
         {
             perror("Failed To Open File!");
-            close(client_socket);
+            SSL_free(ssl);
             return NULL;
         }
 
@@ -68,7 +109,7 @@ void *client_handler(void *args)
         if (file_buffer == NULL)
         {
             perror("Memory Allocation Failed!");
-            close(client_socket);
+            SSL_free(ssl);
             return NULL;
         }
 
@@ -112,21 +153,25 @@ void *client_handler(void *args)
         // Serve the file as response to the client with the necessary HTTP headers
         char http_response[HTTP_BUFFER_SIZE];
         snprintf(http_response, sizeof(http_response), "HTTP/1.1 200 OK\nContent-Type: %s\nContent-Length: %ld\n\n", content_type, file_size);
-        send(client_socket, http_response, strlen(http_response), 0);
-        send(client_socket, file_buffer, file_size, 0);
+        SSL_write(ssl, http_response, strlen(http_response));
+        SSL_write(ssl, file_buffer, file_size);
 
         free(file_buffer);
         printf("Web Content Served Successfully!\n\n%s\n", http_response);
     }
 
-    close(client_socket);
+    SSL_shutdown(ssl);
+    SSL_free(ssl);
     return NULL;
 }
 
 int main()
 {
-
     pthread_t clientThread;
+    SSL_CTX *ctx = create_ssl_context();
+
+    // Initialize OpenSSL
+    init_openssl();
 
     // Create a socket.
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -175,6 +220,7 @@ int main()
         }
         printf("Connection Successful! _FD: %d\n", client_socket);
 
+        
         // Initialize thread Arguments.
         ClientArgs *client_args = malloc(sizeof(ClientArgs));
         if (client_args == NULL)
@@ -183,7 +229,12 @@ int main()
             close(client_socket);
             continue;
         }
-        client_args->client_socket = client_socket;
+
+        // Wrap the client socket in an SSL object
+        SSL *ssl = SSL_new(ctx);
+        SSL_set_fd(ssl, client_socket); // Associate SSL with the client socket
+
+        client_args->ssl = ssl;
 
         //Create new thread for the client.
         if(pthread_create(&clientThread, NULL, client_handler, client_args) < 0)
@@ -197,6 +248,7 @@ int main()
     }
     
     // Close the socket after handling the client
+    SSL_CTX_free(ctx);
     close(server_socket);
     return 0;
 }
