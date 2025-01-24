@@ -8,5 +8,8 @@
         "errno.h": "c"
     },
     "C_Cpp.default.compilerPath": "/usr/bin/gcc",
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "ms-vscode.cpptools",
+    "[c]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    }
 }
