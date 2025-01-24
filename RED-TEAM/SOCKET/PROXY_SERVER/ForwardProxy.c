@@ -46,14 +46,29 @@ void *client_handler(void *args){
         free(proxy_args);
         return NULL;
     }
-    else{
+    else
+    {
         buffer[bytesReceived] = '\0';
         printf("%s\n", buffer);
 
-        // Extract the target host and resource URI from the HTTP request Header.
+        // Extract the method, path and http version from the HTTP request.
+        char method[10], path[50], http_version[10];
+        sscanf(buffer, "%s %s %s", method, path, http_version);
 
-        /* code */
+        //Extract the resource URI from the path.
+        char *uri = strrchr(path, '/');
+        char *resource_uri = uri + 1;
 
+        printf("URI: %s\n", resource_uri);
+
+        // Extract the host from the http request.
+        char *hostname = strstr(buffer, "Host:");
+        char *target = strchr(hostname, ' ');
+        char *target_host = target + 1;
+        char *end = strchr(target_host, '\r');
+        *end = '\0';
+
+        printf("Host: %s\n", target_host);
 
         // Forward the request to the target server and send the response back to the client.
         int server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -72,7 +87,7 @@ void *client_handler(void *args){
         server_address.sin_family = AF_INET;
         server_address.sin_port = htons(80);
 
-        struct hostent *host = gethostbyname(path);
+        struct hostent *host = gethostbyname(target_host);
         if (host == NULL)
         {
             perror("Failed To Get Host By Name!");
